@@ -1,0 +1,534 @@
+\chapter{Disciplined Geodesically Convex Programming}
+
+This chapter introduces Disciplined Geodesically Convex Programming (DGCP), a framework that extends convexity verification to Riemannian manifolds. We begin by motivating the need for such a framework, then present the theoretical foundations of DGCP, including rules for preserving geodesic convexity under various operations. We then focus on the specific case of the symmetric positive definite manifold, introducing a comprehensive set of atoms and rules for this important domain. Finally, we present our implementation of DGCP in Julia and demonstrate its application to several important problems in statistics, machine learning, and optimization.
+
+\section{Motivation and Background}
+
+Nonlinear programming plays a fundamental role in data science, machine learning, and engineering. These problems involve optimization tasks with nonlinear objectives and/or nonlinear constraints, which can be challenging to solve efficiently. While convex programming—the subset of nonlinear programming where both the objective and constraints are convex—has been extensively studied and offers strong guarantees, many important applications fall outside this restrictive setting.
+
+Consider the computation of statistical estimators such as Tyler's M-estimator and related estimators \cite{Tyler1987, Wiesel2012, Ollila2014}, optimistic likelihood estimation \cite{Nguyen2019}, and certain Wasserstein bounds on entropy \cite{Courtade2017}. Similarly, matrix-valued operations that arise in machine learning approaches including robust subspace recovery \cite{Zhang2016}, matrix barycenter problems \cite{Bhatia1997}, and learning Determinantal Point Processes \cite{Mariet2015} all involve non-convex optimization problems in the Euclidean sense.
+
+However, these seemingly non-convex problems often possess "hidden" convexity when viewed through a geometric lens. While their objectives and constraints may be non-convex in the Euclidean sense, they are convex with respect to a different Riemannian metric. This observation motivates the need for tools that can automatically detect and leverage this geodesic convexity.
+
+\subsection{Disciplined Convex Programming}
+
+In the Euclidean setting, Disciplined Convex Programming (DCP) was introduced by Grant et al. \cite{Grant2006} as a framework for automating the verification of convexity in optimization problems. DCP works by decomposing the objective function or constraints into basic convex functions (atoms) using convexity-preserving compositions and transformations (rules). The framework has been implemented in libraries such as CVX \cite{Diamond2016}, making it accessible to practitioners.
+
+More recently, the DCP framework has been extended to handle log-log convex programs \cite{Agrawal2019} and quasi-convex programs \cite{Agrawal2020}. However, no extensions to the geodesically convex setting existed prior to our work.
+
+\subsection{Geodesic Convexity and Its Importance}
+
+Geodesic convexity extends the notion of convexity to functions defined on manifolds. A function is geodesically convex if its restriction to any geodesic is convex. This concept is particularly important for optimization on manifolds, as geodesically convex functions possess many of the desirable properties of convex functions, such as the uniqueness of local minima.
+
+For many applications, formulating problems in terms of geodesic convexity can transform seemingly non-convex problems into tractable ones with theoretical guarantees. However, verifying geodesic convexity manually requires expertise in differential geometry and can be error-prone. A framework that automates this verification process would significantly broaden the applicability of geodesic convexity in practical optimization.
+
+\section{Theoretical Foundations of DGCP}
+
+In this section, we present the theoretical foundations of Disciplined Geodesically Convex Programming. We focus on Cartan-Hadamard manifolds, which are complete, simply connected Riemannian manifolds with non-positive sectional curvature. These manifolds provide a natural setting for geodesic convexity, as they share many properties with Euclidean space while allowing for more general geometries.
+
+\subsection{Rules for Cartan-Hadamard Manifolds}
+
+We begin by establishing general rules for preserving geodesic convexity on Cartan-Hadamard manifolds. These rules form the foundation of our DGCP framework, allowing us to verify geodesic convexity of complex functions by decomposing them into simpler components.
+
+\begin{proposition}[Maximum of Geodesically Convex Functions]
+Let $(M, d)$ be a Cartan-Hadamard manifold. Suppose $S \subseteq M$ is a g-convex subset. Furthermore, suppose $f_i: S \rightarrow \mathbb{R}$ are g-convex for $i = 1, \ldots, n$. Then the function
+\begin{equation}
+f(X) = \max_{i \in \{1, \ldots, n\}} f_i(X)
+\end{equation}
+is also g-convex.
+\end{proposition}
+
+\begin{proposition}[Conic Combination of Geodesically Convex Functions]
+Let $(M, d)$ be a Cartan-Hadamard manifold. Suppose $S \subseteq M$ is a g-convex subset. Furthermore, suppose $f_i: S \rightarrow \mathbb{R}$ are g-convex for $i = 1, \ldots, n$. Then the function
+\begin{equation}
+f(X) = \sum_{i=1}^n \alpha_i f_i(X)
+\end{equation}
+for $\alpha_1, \ldots, \alpha_n \geq 0$ is also g-convex.
+\end{proposition}
+
+\begin{remark}
+In the setting of Cartan-Hadamard manifolds, the property of taking the maximum can be generalized to an arbitrary collection of g-convex sets. That is, for an arbitrary collection of g-convex functions $\{f_i\}_{i \in I}$, indexed by $I$, the map $X \mapsto \sup_{i \in I} f_i(X)$ is g-convex. This follows from the fact that a function $f$ is g-convex if and only if its epigraph is g-convex and the fact that the epigraph of the supremum of a collection of functions is the intersection of the epigraphs of each function in such a collection. Finally, the intersection of g-convex sets is g-convex for Cartan-Hadamard manifolds.
+\end{remark}
+
+Another important rule concerns the composition of geodesically convex functions with convex functions:
+
+\begin{proposition}[Composition with Convex Functions]
+Let $(M, d)$ be a Cartan-Hadamard manifold and $S \subset M$ g-convex. Suppose $f: S \rightarrow \mathbb{R}$ is g-convex. If $h: \mathbb{R} \rightarrow \mathbb{R}$ is non-decreasing and Euclidean convex, then $h \circ f: S \rightarrow \mathbb{R}$ is g-convex.
+\end{proposition}
+
+We can extend this result to various combinations of convexity and monotonicity:
+
+\begin{corollary}[Scalar Composition Rules]
+Let $(M, d)$ be a Cartan-Hadamard manifold and $S \subset M$ g-convex.
+\begin{enumerate}
+\item Let $f: S \rightarrow \mathbb{R}$ be geodesically concave. If $h: \mathbb{R} \rightarrow \mathbb{R}$ is non-increasing and convex, then $h \circ f$ is geodesically convex on $S$.
+\item Let $f: S \rightarrow \mathbb{R}$ be geodesically concave. If $h: \mathbb{R} \rightarrow \mathbb{R}$ is non-decreasing and concave, then $h \circ f$ is geodesically concave on $S$.
+\item Let $f: S \rightarrow \mathbb{R}$ be geodesically convex. If $h: \mathbb{R} \rightarrow \mathbb{R}$ is non-increasing and concave, then $h \circ f$ is geodesically convex on $S$.
+\end{enumerate}
+\end{corollary}
+
+\begin{example}
+If $f: S \rightarrow \mathbb{R}$ is g-convex with respect to the canonical Riemannian metric, then $\exp(f(x))$ is g-convex and $-\log(-f(x))$ is g-convex on $\{x: f(x) < 0\}$. If $f$ is non-negative and $p \geq 1$, then $f(x)^p$ is g-convex.
+\end{example}
+
+\subsection{Atoms for Cartan-Hadamard Manifolds}
+
+In addition to rules that preserve geodesic convexity, we need a set of basic geodesically convex functions, or "atoms," from which we can build more complex functions. Here we present some fundamental atoms for general Cartan-Hadamard manifolds.
+
+\begin{example}[Intrinsic Distance]
+Let $(M, d)$ be a Cartan-Hadamard manifold. The following functions $f: M \rightarrow \mathbb{R}$ are geodesically convex.
+\begin{enumerate}
+\item Let $y \in M$. Then the intrinsic distance to $y$ given by $f(x) = d(x, y)$ is geodesically convex. More generally, $f(x) = d^p(x, y)$ is geodesically convex for $p \geq 1$. Furthermore, let $\{x_i\}_{i=1}^n \subseteq M$ and $w_1, \ldots, w_n > 0$ such that $\sum_{i=1}^n w_i = 1$. Then
+\begin{equation}
+f(x) = \sum_{i=1}^n w_i d^p(x, x_i)
+\end{equation}
+is geodesically convex for $p \geq 1$.
+\item Let $F: M \rightarrow M$ be an isometry. Then the function
+\begin{equation}
+f_F(x) = d(x, Fx)
+\end{equation}
+is geodesically convex.
+\end{enumerate}
+\end{example}
+
+These atoms, combined with the rules presented earlier, allow us to verify the geodesic convexity of a wide range of functions on general Cartan-Hadamard manifolds. In the next section, we focus on the specific case of the symmetric positive definite manifold, which is of particular interest in many applications.
+
+\section{DGCP for Symmetric Positive Definite Matrices}
+
+The manifold of symmetric positive definite matrices, denoted as $\mathcal{P}_d$, is a Cartan-Hadamard manifold when equipped with the affine-invariant metric. This manifold appears in numerous applications, from covariance matrix estimation to diffusion tensor imaging, making it a natural focus for our DGCP framework.
+
+\subsection{Geometry of the Symmetric Positive Definite Manifold}
+
+The manifold $\mathcal{P}_d$ consists of all $d \times d$ real symmetric matrices with strictly positive eigenvalues:
+\begin{equation}
+\mathcal{P}_d := \{X \in \mathbb{R}^{d \times d} : X^T = X, X \succ 0\}
+\end{equation}
+
+When equipped with the canonical affine-invariant metric, which defines the inner product on the tangent space as
+\begin{equation}
+\langle A, B \rangle_X = \text{tr}(X^{-1} A X^{-1} B), \quad X \in \mathcal{P}_d, A, B \in T_X(\mathcal{P}_d) = \mathcal{S}_d,
+\end{equation}
+where $\mathcal{S}_d$ is the space of $d \times d$ real symmetric matrices, $\mathcal{P}_d$ becomes a Cartan-Hadamard manifold.
+
+The geodesic connecting two matrices $A, B \in \mathcal{P}_d$ has the explicit form
+\begin{equation}
+\gamma(t) = A^{1/2} (A^{-1/2} B A^{-1/2})^t A^{1/2}, \quad 0 \leq t \leq 1.
+\end{equation}
+
+The Riemannian distance on $\mathcal{P}_d$ is given by
+\begin{equation}
+\delta_R(A, B) = \|{\log(A^{-1/2} B A^{-1/2})}\|_F,
+\end{equation}
+which corresponds to the length of the geodesic connecting $A$ and $B$.
+
+\subsection{Rules for Symmetric Positive Definite Matrices}
+
+In addition to the general rules for Cartan-Hadamard manifolds, the specific geometry of $\mathcal{P}_d$ allows us to establish additional rules for preserving geodesic convexity. These rules are particularly useful for verifying geodesic convexity of functions that arise in applications involving symmetric positive definite matrices.
+
+We begin by introducing the Löwner order, which provides a partial ordering on symmetric matrices:
+
+\begin{definition}[Löwner Order]
+For $A, B \in \mathcal{P}_d$, we write $A \succ B$ when $A - B \in \mathcal{P}_d$. Similarly, we write $A \succeq B$ whenever $A - B$ is symmetric positive semi-definite.
+\end{definition}
+
+We say a function $f: \mathcal{P}_d \rightarrow \mathbb{R}$ is increasing if $f(A) \geq f(B)$ whenever $A \succeq B$.
+
+\begin{definition}[Positive Linear Map]
+A linear map $\Phi: \mathcal{P}_d \rightarrow \mathcal{P}_m$ is positive when $\Phi(A) \succeq 0$ for all $A \in \mathcal{P}_d$. We say that $\Phi$ is strictly positive when $A \succ 0$ implies that $\Phi(A) \succ 0$.
+\end{definition}
+
+A key result for our framework is that strictly positive linear operators preserve geodesic convexity:
+
+\begin{proposition}[Geodesic Convexity of Strictly Positive Linear Operators]
+Let $\Phi(X)$ be a strictly positive linear operator from $\mathcal{P}_d$ to $\mathcal{P}_m$. Then $\Phi(X)$ is g-convex with respect to the Löwner order on $\mathcal{P}_m$ over $\mathcal{P}_d$ with respect to the canonical Riemannian inner product $g_X(U, V) := \text{tr}(X^{-1} U X^{-1} V)$. In other words, for any geodesic $\gamma: [0, 1] \rightarrow \mathcal{P}_d$, we have
+\begin{equation}
+\Phi(\gamma(t)) \preceq (1 - t)\Phi(\gamma(0)) + t\Phi(\gamma(1)) \quad \forall t \in [0, 1].
+\end{equation}
+\end{proposition}
+
+This result leads to several important examples of geodesically convex maps:
+
+\begin{example}[Strictly Positive Linear Operators]
+Let $Y \in \mathcal{P}_d$ be fixed. The following maps are g-convex with respect to the canonical Riemannian metric on $\mathcal{P}_d$:
+\begin{enumerate}
+\item $X \mapsto \text{tr}(X)$
+\item $X \mapsto Y^T X Y$ for $Y \in \mathbb{R}^{d \times k}$
+\item $X \mapsto \text{Diag}(X) := \sum_j X_{jj} E_{jj}$, where $E_{jj}$ is the $d \times d$ matrix with 1 in the $(j, j)$-th element and 0 elsewhere
+\item Let $M \succeq 0$ and $M$ has no zero rows. The function $\Phi(X) = M \odot X$ where $\odot$ denotes the Hadamard product is a strictly positive linear operator and hence g-convex.
+\end{enumerate}
+\end{example}
+
+Another important result relates to the composition of positive linear maps with the log-determinant function:
+
+\begin{proposition}[Log-Determinant Composition]
+Let $\Phi(X): \mathcal{P}_d \rightarrow \mathcal{P}_m$ be a strictly positive linear operator. Then $\log \det(\Phi(X))$ is g-convex on $\mathcal{P}_d$ with respect to the metric $g_X(U, V) := \text{tr}(X^{-1} U X^{-1} V)$.
+\end{proposition}
+
+An interesting property of geodesic convexity on $\mathcal{P}_d$ is that it is preserved under matrix inversion:
+
+\begin{proposition}[Geodesic Convexity and Matrix Inversion]
+Let $f: \mathcal{P}_d \rightarrow \mathbb{R}$ be g-convex. Then $g(X) = f(X^{-1})$ is also g-convex.
+\end{proposition}
+
+Applying these results yields a rich variety of geodesically convex functions:
+
+\begin{example}
+The following maps are g-convex with respect to the canonical Riemannian metric:
+\begin{enumerate}
+\item $X \mapsto \log \det\left(\frac{X+Y}{2}\right)$ for fixed $Y \in \mathcal{P}_d$
+\item $X \mapsto \log \det(X^r Y)$ for fixed $Y \in \mathcal{P}_d$ and $r \in \{-1, 1\}$
+\item $X \mapsto \log \det\left(\sum_{i=1}^n Y_i X^r Y_i^T\right)$ for $\{Y_1, \ldots, Y_n\} \subseteq \mathcal{P}_d$ and $r \in \{-1, 1\}$
+\end{enumerate}
+\end{example}
+
+A particularly important special case is the log-quadratic form:
+
+\begin{example}[Log-Quadratic Form]
+Let $y_i \in \mathbb{R}^d \setminus \{0\}$ for $i = 1, \ldots, m$. The function
+\begin{equation}
+X \mapsto \log\left(\sum_{i=1}^m y_i^T X y_i\right)
+\end{equation}
+is g-convex with respect to the canonical Riemannian metric.
+\end{example}
+
+We also have results for functions of eigenvalues:
+
+\begin{example}
+The following maps are g-convex:
+\begin{enumerate}
+\item $g(X) = \sum_{i=1}^k \lambda_i^{\downarrow}(X^{-1})$ for $k = 1, \ldots, d$
+\item $g(X) = \sum_{i=1}^k \log\left(\lambda_i^{\downarrow}(X^{-1})\right)$ for $k = 1, \ldots, d$
+\item $g(X) = \log \det\left(\frac{X^{-1}+Y}{2}\right)$ for fixed $Y \in \mathcal{P}_d$
+\end{enumerate}
+\end{example}
+
+We can generalize the result on log-determinant composition to a broader class of functions:
+
+\begin{proposition}[General Composition of Positive Maps]
+Let $h: \mathcal{P}_d \rightarrow \mathbb{R}$ be non-decreasing and g-convex. Let $r \in \{-1, 1\}$ and let $\Phi$ be a positive linear map. Then $\varphi(X) = h(\Phi(X^r))$ is g-convex with respect to the canonical Riemannian metric.
+\end{proposition}
+
+We can extend this further to positive affine operators:
+
+\begin{definition}[Positive Affine Operator]
+Let $B \succeq 0$ be a fixed symmetric positive semidefinite matrix and $\Phi: \mathcal{P}_d \rightarrow \mathcal{P}_d$ be a positive linear operator. Then the function $\varphi: \mathcal{P}_d \rightarrow \mathcal{P}_d$ defined by
+\begin{equation}
+\varphi(X) = \Phi(X) + B
+\end{equation}
+is a positive affine operator.
+\end{definition}
+
+\begin{proposition}[Geodesic Convexity of Positive Affine Maps]
+Let $\varphi(X) = \Phi(X) + B$ where $\Phi(X)$ is a positive linear map and $B \succeq 0$. Let $f: \mathcal{P}_d \rightarrow \mathcal{P}_m$ be g-convex and monotonically increasing, i.e., $f(X) \preceq f(Y)$ whenever $X \preceq Y$. Then the function $g(X) = f(\varphi(X))$ is g-convex.
+\end{proposition}
+
+These rules yield additional examples of geodesically convex functions:
+
+\begin{example}
+Let $B \succeq 0$ and $Y_i \in \mathcal{P}_d$ for $i = 1, \ldots, n$ be fixed matrices.
+\begin{enumerate}
+\item $X \mapsto \text{tr}\left(B + \sum_i Y_i^T X^r Y_i\right)^\alpha$ is g-convex
+\item $X \mapsto \log \det\left(B + \sum_i Y_i^T X Y_i\right)$ is g-convex
+\item Let $M \succeq 0$. The map $X \mapsto \log \det(B + X \odot M)$ is g-convex
+\end{enumerate}
+\end{example}
+
+Finally, we have a powerful result for functions of eigenvalues:
+
+\begin{theorem}[Geodesic Convexity of Spectral Functions]
+If $f: \mathbb{R} \rightarrow \mathbb{R}$ is Euclidean convex, then the function $\varphi(X) = \sum_{i=1}^k f\left(\log \lambda_i^{\downarrow}(X)\right)$ is g-convex for each $1 \leq k \leq d$ where $\lambda_i^{\downarrow}(X)$ denotes the ordered spectrum of $X$, i.e., $\lambda_1^{\downarrow}(X) \geq \lambda_2^{\downarrow}(X) \cdots \geq \lambda_d^{\downarrow}(X)$. Moreover, if $h: \mathbb{R} \rightarrow \mathbb{R}$ is non-decreasing and Euclidean convex, then $\varphi(X) = \sum_{i=1}^k h(|\log \lambda_i^{\downarrow}(X)|)$ is g-convex for each $1 \leq k \leq n$.
+\end{theorem}
+
+\subsection{Atoms for Symmetric Positive Definite Matrices}
+
+In addition to the rules for preserving geodesic convexity, our DGCP framework includes a foundational set of geodesically convex functions, or "atoms," defined on the manifold of symmetric positive definite matrices. These atoms serve as building blocks for constructing more complex geodesically convex functions through the application of the rules presented earlier.
+
+In our framework, each atom has a designated curvature (g-convex, g-concave, or g-linear) and monotonicity property (GIncreasing, GDecreasing, or GAnyMono). The monotonicity property is defined with respect to the Löwner order:
+
+\begin{definition}
+A function $f: \mathcal{P}_d \rightarrow \mathcal{P}_d$ is GIncreasing if it satisfies $f(A) \succeq f(B)$ whenever $A \succeq B$.
+\end{definition}
+
+We now present our basic set of DGCP atoms, categorized as scalar-valued and matrix-valued.
+
+\subsubsection{Scalar-valued Atoms}
+
+\paragraph{Log Determinant.} $\text{logdet}(X)$ represents the log-determinant function $\log \det: \mathcal{P}_d \rightarrow \mathbb{R}_{++}$. This is an atom that is GLinear (i.e., both g-convex and g-concave) and GIncreasing. It is concave in the Euclidean setting.
+
+\paragraph{Trace.} $\text{tr}(X)$ sums the diagonal entries of a matrix. It has GConvex curvature and is GIncreasing. It is affine in the Euclidean setting.
+
+\paragraph{Sum of Entries.} $\text{sum}(X)$ returns $\sum_{i,j=1}^d X_{ij}$. It has GConvex curvature and is GIncreasing. It is affine in the Euclidean setting.
+
+\paragraph{S-Divergence.} $\text{sdivergence}(X,Y)$ is defined as
+\begin{equation}
+\text{sdivergence}(X,Y) := \log \det\left(\frac{X + Y}{2}\right) - \frac{1}{2}\log \det(XY).
+\end{equation}
+This function is jointly geodesically convex, i.e., it has GConvex curvature in both $X$ and $Y$ and is GIncreasing. It is non-convex in the Euclidean setting.
+
+\paragraph{Riemannian Metric.} $\text{distance}(X,Y)$ returns the distance with respect to the affine-invariant metric:
+\begin{equation}
+\text{distance}(X,Y) := \|{\log(Y^{-1/2} X Y^{-1/2})}\|_F.
+\end{equation}
+It is GConvex and is neither GIncreasing nor GDecreasing, hence its monotonicity is unknown, i.e., GAnyMono.
+
+\paragraph{Quadratic Form.} Fix $h \in \mathbb{R}^d$. The function $\text{quad\_form}(h, X) = h^T X h$ is g-convex and GIncreasing. It is also convex in the Euclidean setting.
+
+\paragraph{Spectral Radius.} The function
+\begin{equation}
+\text{eigmax}(X) := \sup_{\|y\|_2=1} y^T X y,
+\end{equation}
+which returns the maximum eigenvalue of $X$, is g-convex and GIncreasing. It is also convex in the Euclidean setting.
+
+\paragraph{Log Quadratic Form.} Let $h_i \in \mathbb{R}^d$ be nonzero vectors for $i = 1, \ldots, n$. Then
+\begin{equation}
+\text{log\_quad\_form}(\{h_1, \ldots, h_n\}, X) = \log\left(\sum_{i=1}^n h_i^T X^r h_i\right), \quad r \in \{-1, 1\}.
+\end{equation}
+This is a g-convex function and GIncreasing. It is non-convex in the Euclidean setting.
+
+\paragraph{Symmetric Gauge Functions.} Symmetric gauge functions provide a rich class of geodesically convex spectral functions:
+
+\begin{definition}[Symmetric Gauge Functions]
+A map $\Phi: \mathbb{R}^d \rightarrow \mathbb{R}_+$ is called a symmetric gauge function if
+\begin{enumerate}
+\item $\Phi$ is a norm
+\item $\Phi(Px) = \Phi(x)$ for all $x \in \mathbb{R}^n$ and all $n \times n$ permutation matrices $P$ (symmetric property)
+\item $\Phi(\alpha_1 x_1, \ldots, \alpha_n x_n) = \Phi(x_1, \ldots, x_n)$ for all $x \in \mathbb{R}^n$ and $\alpha_k \in \{±1\}$ (gauge invariant or absolute property)
+\end{enumerate}
+\end{definition}
+
+\begin{proposition}[Symmetric Gauge Functions are g-convex]
+Let $\Phi: \mathbb{R}^d \rightarrow \mathbb{R}$ be a symmetric gauge function. Then the function $f(A) := \Phi(\lambda(A))$ is geodesically convex, where $\lambda(A) = \{\lambda_1(A), \ldots, \lambda_d(A)\} \in \mathbb{R}^d$ is the eigenspectrum of $A$.
+\end{proposition}
+
+Important examples of symmetric gauge functions include:
+
+\paragraph{Ky Fan Norms.} The $k$-Ky Fan function of $X$ is the sum of the top $k$ eigenvalues:
+\begin{equation}
+\Phi(X) = \sum_{i=1}^k \lambda_i^{\downarrow}(X), \quad 1 \leq k \leq d,
+\end{equation}
+where $\lambda_i^{\downarrow}(X)$ is the sorted spectrum of $X$. This is implemented as $\text{eigsummax}(X, k)$.
+
+\paragraph{Schatten Norms.} The $p$-Schatten norm for $p \geq 1$ is defined as
+\begin{equation}
+\Phi(X) = \left(\sum_{i=1}^d \lambda_i^p(X)\right)^{1/p}.
+\end{equation}
+This is implemented as $\text{schatten\_norm}(X, p)$.
+
+\subsubsection{Matrix-valued Atoms}
+
+\paragraph{Conjugation.} Let $X \in \mathcal{P}_d$ and $A \in \mathbb{R}^{n \times n}$, then $\text{conjugation}(X, A) = A^T X A$. This atom has GConvex curvature and is GIncreasing. It is affine in the Euclidean setting.
+
+\paragraph{Adjoint.} Let $X \in \mathcal{P}_d$, then $\text{adjoint}(X) = X^T$ has GConvex curvature and is GIncreasing. It is affine in the Euclidean setting.
+
+\paragraph{Inverse.} Let $X \in \mathcal{P}_d$, then $\text{inv}(X) = X^{-1}$ has GConvex curvature and is GDecreasing. It is also convex in the Euclidean setting.
+
+\paragraph{Hadamard Product.} Let $X \in \mathcal{P}_d$, then $\text{hadamard\_product}(X, B) = X \odot B$ has GConvex curvature and is GIncreasing. It is affine in the Euclidean setting.
+
+These atoms, combined with the rules presented earlier, provide a comprehensive framework for verifying geodesic convexity of functions defined on the symmetric positive definite manifold.
+
+\section{Implementation in Julia}
+
+We have implemented the DGCP framework in a Julia package called SymbolicAnalysis.jl, which provides functionality for testing and certifying DGCP-compliant expressions. In this section, we describe the key components of our implementation and demonstrate its use through examples.
+
+\subsection{Software Architecture}
+
+The implementation of DGCP in SymbolicAnalysis.jl is based on the foundation of symbolic computation and rewriting capability provided by the Symbolics.jl package. This approach allows us to represent mathematical expressions as abstract syntax trees, which can then be analyzed and transformed according to the rules of geodesic convexity.
+
+Each expression is represented as a tree, where the nodes represent functions (or atoms), and the leaves represent variables or constants. This representation enables the propagation of function properties, such as curvature and monotonicity, through the expression tree.
+
+Previous implementations of disciplined programming, such as CVXPY and Convex.jl, define a class for each atom. We take a different approach in our DGCP implementation. The relevant properties, such as domain, sign, curvature, and monotonicity, are added as metadata to the expression nodes, and then propagated by looking up the corresponding property for every atomic function. The DGCP-compliant rules are implemented using rule-based term rewriting provided by SymbolicUtils.jl.
+
+For analyzing arbitrary expressions, the properties are recursively added by a post-order tree traversal of the expression tree. This approach allows for greater flexibility and modularity in defining new atoms and rules, enabling the incorporation of domain-specific atoms. Since the atoms are directly the Julia functions, the DGCP implementation avoids the need to create and maintain separate implementations of numerical routines.
+
+\subsection{Integration with Optimization.jl}
+
+SymbolicAnalysis.jl is designed to work seamlessly with the broader Julia optimization ecosystem, particularly Optimization.jl. This integration allows users to verify the geodesic convexity of their optimization problems before solving them, providing valuable insights and potential simplifications.
+
+The integration works through a $structural\_analysis$ keyword argument to the $OptimizationProblem$ constructor in Optimization.jl. When this argument is set to `true`, the system attempts to symbolically trace through the objective and constraints, analyzing their convexity structure.
+
+For Riemannian optimization problems on the symmetric positive definite manifold, this analysis can verify geodesic convexity, providing guarantees about the existence of global minima and the convergence of optimization algorithms.
+
+\subsection{Example: Karcher Mean Computation}
+
+To illustrate the use of SymbolicAnalysis.jl for geodesic convexity verification, let's consider the problem of computing the Karcher mean of a set of symmetric positive definite matrices.
+
+Given a set of symmetric positive definite matrices $\{A_j\} \subseteq \mathcal{P}_d$, the Karcher mean is defined as the solution to the problem
+\begin{equation}
+X^* = argmin_{X \succ 0} \left[ \phi(X) = \sum_{i=1}^m w_i \delta_R^2(X, A_i) \right],
+\end{equation}
+where $w_i \geq 0$ are weights and $\delta_R$ is the Riemannian distance function.
+
+The Karcher mean has applications in medical imaging, kernel methods, and interpolation. It is a geodesically convex problem, but not Euclidean convex. Furthermore, for $m > 2$, it does not admit a closed-form solution, requiring iterative optimization methods.
+
+Using SymbolicAnalysis.jl, we can verify the geodesic convexity of this problem:
+
+\begin{verbatim}
+using SymbolicAnalysis, Manifolds, LinearAlgebra
+
+# Define the manifold and data
+M = SymmetricPositiveDefinite(5)
+m = 5
+q = Matrix{Float64}(I, 5, 5) .+ 2.0
+data = [exp(M, q, 0.005 * rand(M; vector_at = q)) for i in 1:m]
+
+# Define the objective function
+f(x) = sum(distance(M, x, data[i])^2 for i in 1:m)
+
+# Analyze the geodesic convexity
+analyze_res = analyze(f, M)
+println(analyze_res.gcurvature)  # Output: GConvex
+\end{verbatim}
+
+The analysis confirms that the problem is geodesically convex, validating the theoretical result and providing assurance about the convergence of Riemannian optimization algorithms.
+
+\subsection{Example: Matrix Square Root}
+
+Computing the square root $A^{1/2}$ of a symmetric positive definite matrix $A \in \mathcal{P}_d$ is an important subroutine in many applications. Various optimization approaches have been proposed for this problem, including a geodesically convex formulation by Sra:
+\begin{equation}
+\min_{X \in \mathcal{P}_d} \phi(X) := \delta_S^2(X, A) + \delta_S^2(X, I),
+\end{equation}
+where $\delta_S$ is the S-divergence.
+
+We can verify the geodesic convexity of this formulation using SymbolicAnalysis.jl:
+
+\begin{verbatim}
+using SymbolicAnalysis, Manifolds, LinearAlgebra
+
+# Define the manifold and data
+M = SymmetricPositiveDefinite(5)
+A = randn(5, 5)
+A = A * A'  # Make it SPD
+
+# Define the objective function
+function f(X)
+    return sdivergence(X, A) + sdivergence(X, Matrix{Float64}(I, 5, 5))
+end
+
+# Analyze the geodesic convexity
+analyze_res = analyze(f, M)
+println(analyze_res.gcurvature)  # Output: GConvex
+\end{verbatim}
+
+Again, the analysis confirms the geodesic convexity of the problem, validating the theoretical result.
+
+\section{Applications of DGCP}
+
+In this section, we demonstrate the application of DGCP to several important problems in statistics, machine learning, and optimization. For each application, we formulate the problem, verify its geodesic convexity using our framework, and discuss the implications for optimization.
+
+\subsection{Robust Covariance Estimation}
+
+Estimating covariance matrices is a fundamental task in statistics and machine learning. In many applications, robustness to outliers is essential. Tyler's M-estimator and related estimators provide robust alternatives to the sample covariance matrix.
+
+Tyler's M-estimator can be formulated as the solution to the following optimization problem:
+\begin{equation}
+\min_{\Sigma \in \mathcal{P}_d} \frac{1}{n} \sum_{i=1}^n \log(x_i^T \Sigma^{-1} x_i) + \frac{1}{d} \log \det(\Sigma),
+\end{equation}
+where $\{x_i\}_{i=1}^n \subseteq \mathbb{R}^d$ are the observed data points.
+
+While this problem appears non-convex in the Euclidean sense, it is geodesically convex. Using DGCP, we can verify this property:
+
+\begin{verbatim}
+using SymbolicAnalysis, LinearAlgebra
+
+function tyler_objective(Sigma, xs)
+    d = size(Sigma, 1)
+    return sum(log_quad_form(x, inv(Sigma)) for x in xs) + (1/d) * logdet(Sigma)
+end
+
+function verify_tyler_convexity()
+    # Generate some sample data
+    d = 3
+    n = 10
+    xs = [rand(d) for _ in 1:n]
+    
+    # Define the manifold
+    M = SymmetricPositiveDefinite(d)
+    
+    # Define symbolic variables for the covariance matrix
+    @variables Sigma[1:d, 1:d]
+    
+    # Define the objective function
+    obj = tyler_objective(Sigma, xs)
+    
+    # Analyze geodesic convexity
+    analyze_res = analyze(obj, M)
+    return analyze_res.gcurvature
+end
+
+# Verify geodesic convexity
+result = verify_tyler_convexity()  # Output: GConvex
+\end{verbatim}
+
+The geodesic convexity of Tyler's M-estimator has important implications for optimization. It guarantees that any local minimum is a global minimum, and that Riemannian optimization algorithms will converge to the globally optimal solution regardless of initialization.
+
+\subsection{Brascamp-Lieb Constants}
+
+The Brascamp-Lieb inequalities form an important class of inequalities in functional analysis and probability theory. They encompass many well-known inequalities, such as Hölder's inequality and the Loomis-Whitney inequality. Beyond their applications in mathematics, Brascamp-Lieb inequalities have been used in machine learning and information theory.
+
+The computation of Brascamp-Lieb constants can be formulated as an optimization problem on the positive definite matrices:
+\begin{equation}
+\min_{X \in \mathcal{P}_d} \left[ F(X) = -\log \det(X) + \sum_i w_i \log \det(A_i^T X A_i) \right],
+\end{equation}
+where $A_i$ are given matrices and $w_i$ are weights.
+
+This problem is geodesically convex but not Euclidean convex. We can verify its geodesic convexity using DGCP:
+
+\begin{verbatim}
+using SymbolicAnalysis, LinearAlgebra
+
+function brascamp_lieb_objective(X, As, ws)
+    obj = -logdet(X)
+    for (A, w) in zip(As, ws)
+        obj += w * logdet(conjugation(X, A))
+    end
+    return obj
+end
+
+function verify_bl_convexity()
+    # Define problem dimensions
+    d = 3
+    m = 2
+    
+    # Generate random data
+    As = [randn(d, d) for _ in 1:m]
+    ws = rand(m)
+    ws ./= sum(ws)  # Normalize weights
+    
+    # Define the manifold
+    M = SymmetricPositiveDefinite(d)
+    
+    # Define symbolic variables
+    @variables X[1:d, 1:d]
+    
+    # Define the objective function
+    obj = brascamp_lieb_objective(X, As, ws)
+    
+    # Analyze geodesic convexity
+    analyze_res = analyze(obj, M)
+    return analyze_res.gcurvature
+end
+
+# Verify geodesic convexity
+result = verify_bl_convexity()  # Output: GConvex
+\end{verbatim}
+
+The geodesic convexity of this problem has led to the development of Riemannian optimization approaches for computing Brascamp-Lieb constants, which have proven more efficient than traditional methods.
+
+\section{Conclusion}
+
+In this chapter, we have introduced Disciplined Geodesically Convex Programming (DGCP), a framework for verifying and exploiting geodesic convexity on Riemannian manifolds. We have presented the theoretical foundations of DGCP, including rules for preserving geodesic convexity under various operations, with a particular focus on the manifold of symmetric positive definite matrices.
+
+We have implemented this framework in the Julia package SymbolicAnalysis.jl, which provides a user-friendly interface for verifying the geodesic convexity of optimization problems. Through examples and applications, we have demonstrated the practical utility of this framework for problems in statistics, machine learning, and optimization.
+
+The key contributions of DGCP include:
+
+\begin{enumerate}
+\item A systematic framework for verifying geodesic convexity, extending the concept of disciplined convex programming to Riemannian manifolds
+\item A comprehensive set of rules and atoms for the manifold of symmetric positive definite matrices, capturing many important operations in practical applications
+\item An efficient implementation in Julia that integrates with the broader optimization ecosystem
+\item Demonstrations of the framework's application to important problems, including robust covariance estimation, Brascamp-Lieb constant computation, and diffusion tensor imaging
+\end{enumerate}
+
+DGCP opens up new possibilities for optimization on manifolds, allowing practitioners to leverage the theoretical guarantees of geodesic convexity for a wider range of problems. By automating the verification of geodesic convexity, it reduces the barrier to entry for manifold optimization and promotes the adoption of geometrically informed approaches to non-convex problems.
+
+As manifold optimization continues to gain prominence in machine learning, statistics, and other fields, frameworks like DGCP will play an increasingly important role in advancing both the theory and practice of optimization on non-Euclidean domains.

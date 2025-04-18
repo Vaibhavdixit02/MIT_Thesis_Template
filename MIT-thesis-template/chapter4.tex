@@ -1,0 +1,544 @@
+\chapter{Software Design and Implementation}
+
+This chapter presents the software design and implementation of the optimization methods developed in this thesis. We begin by discussing the design principles that guided our implementation, emphasizing composability, extensibility, and performance. We then describe the architecture of Optimization.jl, the core framework that unifies our approach to optimization across different problem domains. We detail the implementation of specific components, including the disciplined geodesically convex programming framework, the GPU-accelerated particle swarm optimization, and the augmented Lagrangian method with stochastic inner optimizers. Finally, we discuss the integration of these components with the broader scientific computing ecosystem in Julia, highlighting how our software enables researchers across disciplines to apply advanced optimization techniques to their specific problems.
+
+\section{Design Principles}
+
+The development of scientific software requires careful consideration of various, often competing, factors: ease of use, computational efficiency, extensibility, and correctness. In developing the software components of this thesis, we adhered to the following design principles:
+
+\subsection{Composability}
+
+Scientific computing workflows often involve multiple stages and components. For example, an optimization problem might require automatic differentiation for gradient computation, specialized solvers for the specific problem structure, and visualization tools for analyzing the results. A composable software design allows these components to work together seamlessly, enabling users to mix and match different approaches based on their specific needs.
+
+Our implementation leverages Julia's multiple dispatch system and well-defined interfaces to achieve composability. Key interfaces, such as those for problem definition, automatic differentiation, and solver selection, are designed to be interoperable, allowing users to combine different components without friction.
+
+\subsection{Extensibility}
+
+The field of optimization is constantly evolving, with new algorithms, problem formulations, and application domains emerging regularly. A well-designed software framework should accommodate these developments without requiring a complete redesign. Our implementation emphasizes extensibility through:
+
+\begin{enumerate}
+\item \textbf{Abstract interfaces}: Core concepts like optimization problems, optimizers, and automatic differentiation backends are defined through abstract interfaces, allowing new implementations to be added without modifying existing code.
+
+\item \textbf{Plugin architecture}: New optimizers and problem types can be added through a plugin system, enabling the ecosystem to grow independently of the core framework.
+
+\item \textbf{Minimal assumptions}: The framework makes minimal assumptions about the structure of optimization problems, accommodating a wide range of problem types and domains.
+\end{enumerate}
+
+\subsection{Performance}
+
+Scientific computing often involves computationally intensive tasks, making performance a critical consideration. Our implementation prioritizes performance through:
+
+\begin{enumerate}
+\item \textbf{Zero-overhead abstractions}: Julia's type system and compilation model allow us to provide high-level abstractions without sacrificing performance.
+
+\item \textbf{Specialized implementations}: For performance-critical components, we provide specialized implementations that leverage problem-specific structure.
+
+\item \textbf{Hardware acceleration}: Where appropriate, we leverage GPU computing and other forms of hardware acceleration to improve performance.
+\end{enumerate}
+
+\subsection{User Experience}
+
+Advanced optimization techniques should be accessible to researchers across disciplines, not just experts in optimization theory. Our implementation emphasizes a positive user experience through:
+
+\begin{enumerate}
+\item \textbf{Consistent interfaces}: Common operations, such as defining problems, selecting solvers, and analyzing results, follow consistent patterns across different problem types.
+
+\item \textbf{Informative feedback}: The software provides clear error messages and warnings, helping users diagnose and resolve issues.
+
+\item \textbf{Comprehensive documentation}: Each component is thoroughly documented, with examples and tutorials covering common use cases.
+\end{enumerate}
+
+\section{Optimization.jl: A Unified Optimization Framework}
+
+At the core of our software implementation is Optimization.jl, a unified framework for optimization in Julia. This framework provides a common interface to over 25 optimization libraries, encompassing more than 100 optimization solvers across various classes, from global to local, from convex to non-convex, and from unconstrained to constrained optimization.
+
+\subsection{Overview and Architecture}
+
+Optimization.jl follows a modular architecture organized around several key abstractions:
+
+\begin{enumerate}
+\item \textbf{OptimizationProblem}: Represents an optimization problem, including the objective function, constraints, initial guess, and problem parameters.
+
+\item \textbf{OptimizationFunction}: Encapsulates the objective function and its derivatives, which can be provided explicitly or generated automatically using automatic differentiation.
+
+\item \textbf{AbstractOptimizationAlgorithm}: The base type for all optimization algorithms, defining the interface that all solvers must implement.
+
+\item \textbf{OptimizationSolution}: Contains the result of an optimization process, including the solution, objective value, convergence status, and other metadata.
+\end{enumerate}
+
+These abstractions form the foundation of the framework, enabling consistent interfaces across different problem types and solvers.
+
+\begin{figure}
+\centering
+\includegraphics[width=\textwidth]{optimization_architecture.png}
+\caption{Architecture of Optimization.jl, showing the relationships between key components and their integration with external libraries.}
+\label{fig:architecture}
+\end{figure}
+
+The framework employs a plugin system to integrate with external optimization libraries. Each supported library has a corresponding wrapper package (e.g., OptimizationOptimJL.jl, OptimizationNLopt.jl) that adapts the library's interface to the Optimization.jl abstractions. This approach allows the framework to grow independently of the core package, with new libraries and solvers being added by the community as needed.
+
+\subsection{Problem Definition and Automatic Differentiation}
+
+A key feature of Optimization.jl is its flexible approach to problem definition and automatic differentiation. Users can define optimization problems using standard Julia functions and leverage various automatic differentiation backends for gradient computation.
+
+The framework supports multiple automatic differentiation backends through the ADTypes.jl package, which provides a consistent interface to different AD systems:
+
+\begin{enumerate}
+\item \textbf{ForwardDiff.jl}: Forward-mode automatic differentiation, suitable for problems with few parameters but many outputs.
+
+\item \textbf{ReverseDiff.jl}: Reverse-mode automatic differentiation, suitable for problems with many parameters but few outputs.
+
+\item \textbf{Zygote.jl}: Source-to-source reverse-mode automatic differentiation, optimized for machine learning workloads.
+
+\item \textbf{Enzyme.jl}: LLVM-based automatic differentiation, offering high performance for low-level code.
+
+\item \textbf{FiniteDiff.jl}: Finite difference approximations, suitable when automatic differentiation is not applicable.
+
+\item \textbf{ModelingToolkit.jl}: Symbolic differentiation, enabling symbolic manipulation and optimization of expressions before numerical evaluation.
+\end{enumerate}
+
+This flexibility allows users to choose the most appropriate differentiation method for their specific problem, balancing accuracy, performance, and compatibility with existing code.
+
+\subsection{Constraint Handling}
+
+Optimization.jl provides a flexible system for defining and handling constraints. Constraints can be specified as:
+
+\begin{enumerate}
+\item \textbf{Box constraints}: Lower and upper bounds on individual variables, specified using the `lb` and `ub` parameters of the OptimizationProblem constructor.
+
+\item \textbf{Equality constraints}: Constraints of the form $h(x) = 0$, specified using the `cons` parameter of the OptimizationFunction constructor and setting equal values in the `lcons` and `ucons` parameters of the OptimizationProblem constructor.
+
+\item \textbf{Inequality constraints}: Constraints of the form $g(x) \leq 0$, specified using the `cons` parameter of the OptimizationFunction constructor and setting appropriate values in the `lcons` and `ucons` parameters of the OptimizationProblem constructor.
+\end{enumerate}
+
+The framework automatically routes these constraints to the appropriate solver mechanism, whether that's a dedicated constrained optimization solver or a constraint handling technique like the augmented Lagrangian method.
+
+\subsection{Solver Selection and Configuration}
+
+Optimization.jl provides a unified interface for selecting and configuring optimization solvers. Users can choose from a wide range of solvers across different categories:
+
+\begin{enumerate}
+\item \textbf{Local vs. Global}: From local methods like BFGS and Newton to global methods like simulated annealing and genetic algorithms.
+
+\item \textbf{First-order vs. Second-order}: From gradient-based methods like gradient descent to Hessian-based methods like Newton's method.
+
+\item \textbf{Deterministic vs. Stochastic}: From deterministic methods like L-BFGS to stochastic methods like stochastic gradient descent and Adam.
+
+\item \textbf{Unconstrained vs. Constrained}: From unconstrained methods like BFGS to constrained methods like interior point and augmented Lagrangian.
+\end{enumerate}
+
+Solver-specific options can be passed as keyword arguments to the `solve` function, enabling fine-grained control over the optimization process. Common options, such as convergence tolerances and maximum iterations, are standardized across solvers for consistency.
+
+\section{Implementation of Disciplined Geodesically Convex Programming}
+
+The disciplined geodesically convex programming framework, described in Chapter 3, is implemented in the SymbolicAnalysis.jl package. This package provides tools for analyzing the geodesic convexity of functions defined on Riemannian manifolds, with a focus on the symmetric positive definite manifold.
+
+\subsection{Symbolic Computation and Rule-Based Analysis}
+
+SymbolicAnalysis.jl leverages the symbolic computation capabilities of the Symbolics.jl package to represent mathematical expressions as abstract syntax trees. These trees can then be analyzed and manipulated using rule-based transformations.
+
+The core of the package is a set of rules for propagating convexity information through expression trees. Each node in the tree, representing an operation or function, is associated with rules that determine how convexity properties propagate from the node's children to the node itself. For example, the sum of two geodesically convex functions is geodesically convex, so the corresponding rule propagates this property accordingly.
+
+\begin{figure}
+\centering
+\includegraphics[width=0.8\textwidth]{symbolic_analysis.png}
+\caption{Example of an expression tree in SymbolicAnalysis.jl, showing the propagation of geodesic convexity properties from leaves to the root.}
+\label{fig:symbolic_analysis}
+\end{figure}
+
+\subsection{Atom Library for Symmetric Positive Definite Matrices}
+
+The package includes a comprehensive library of "atoms"—basic functions with known geodesic convexity properties—for the symmetric positive definite manifold. These atoms, described in detail in Chapter 3, include:
+
+\begin{enumerate}
+\item \textbf{Scalar-valued atoms}: Functions like log-determinant, trace, quadratic forms, and spectral functions.
+
+\item \textbf{Matrix-valued atoms}: Operations like matrix inversion, conjugation, and Hadamard product.
+\end{enumerate}
+
+Each atom is implemented as a standard Julia function, with its geodesic convexity properties registered in a central database. This approach allows users to work with familiar mathematical notation while enabling the system to track convexity properties behind the scenes.
+
+\subsection{Integration with Optimization.jl}
+
+SymbolicAnalysis.jl integrates with Optimization.jl through the `structural_analysis` feature. When users create an OptimizationProblem with the `structural_analysis = true` option, the system attempts to symbolically trace through the objective and constraint functions, analyzing their convexity structure.
+
+For Riemannian optimization problems on the symmetric positive definite manifold, this analysis can verify geodesic convexity, providing guarantees about the global optimality of solutions. This integration enables users to leverage the theoretical insights from disciplined geodesically convex programming within the broader Optimization.jl ecosystem.
+
+\section{Implementation of GPU-Accelerated PSO-L-BFGS}
+
+The GPU-accelerated particle swarm optimization with L-BFGS refinement, described in Chapter 4, is implemented in the PSOGPU.jl package. This package provides efficient implementations of various PSO variants, with optional L-BFGS refinement, all accelerated using GPU computing.
+
+\subsection{GPU Kernel Design}
+
+PSOGPU.jl leverages the KernelAbstractions.jl package for writing GPU kernels that are portable across different GPU backends, including NVIDIA CUDA and AMD ROCm. The key kernels implemented in the package include:
+
+\begin{enumerate}
+\item \textbf{Position and velocity update kernel}: Updates the positions and velocities of all particles in parallel.
+
+\item \textbf{Objective evaluation kernel}: Evaluates the objective function for all particles in parallel.
+
+\item \textbf{Global best update kernel}: Updates the global best position using parallel reduction.
+\end{enumerate}
+
+These kernels are carefully designed to minimize memory transfers between host and device, maximizing the efficiency of the GPU implementation.
+
+\subsection{Synchronous and Asynchronous Variants}
+
+The package implements both synchronous and asynchronous variants of PSO, each with its own trade-offs:
+
+\begin{enumerate}
+\item \textbf{ParallelSyncPSOKernel}: The basic synchronous PSO implementation, where all particles are updated using the same global best information.
+
+\item \textbf{ParallelPSOKernel(global\_update = true)}: A more efficient synchronous implementation using a queue-lock mechanism for updating the global best.
+
+\item \textbf{ParallelPSOKernel(global\_update = false)}: An asynchronous implementation where particles evolve independently, reducing synchronization overhead at the cost of exploration quality.
+\end{enumerate}
+
+Users can choose the most appropriate variant based on their specific problem characteristics and hardware constraints.
+
+\subsection{L-BFGS Refinement}
+
+The HybridPSO algorithm extends the basic PSO implementation with L-BFGS refinement. This hybrid approach leverages the global exploration capabilities of PSO and the efficient local refinement of L-BFGS.
+
+The L-BFGS implementation is optimized for GPU computing, with careful attention to memory management and kernel design. The implementation supports both forward-mode and reverse-mode automatic differentiation for gradient computation, allowing users to choose the most appropriate method for their problem.
+
+\subsection{Integration with Optimization.jl}
+
+PSOGPU.jl integrates with Optimization.jl through the standard optimizer interface. Users can select and configure PSO variants using the same patterns as any other Optimization.jl solver:
+
+\begin{verbatim}
+using Optimization, PSOGPU
+
+# Define the optimization problem
+problem = OptimizationProblem(f, x0, p, lb = lower_bounds, ub = upper_bounds)
+
+# Solve using HybridPSO with L-BFGS refinement
+solution = solve(problem, HybridPSO(refinement = :LBFGS, 
+                                    particle_count = 1000, 
+                                    refinement_iterations = 100))
+\end{verbatim}
+
+This integration allows users to seamlessly incorporate GPU-accelerated PSO into their existing Optimization.jl workflows.
+
+\section{Implementation of the Stochastic Augmented Lagrangian Method}
+
+The stochastic augmented Lagrangian method, described in Chapter 5, is implemented as part of Optimization.jl itself. This implementation combines the classical augmented Lagrangian method with stochastic optimizers like Adam for the inner minimization problem.
+
+\subsection{Augmented Lagrangian Framework}
+
+The core of the implementation is an augmented Lagrangian framework that handles both equality and inequality constraints. The framework follows the standard augmented Lagrangian approach:
+
+\begin{enumerate}
+\item \textbf{Inner minimization}: Minimize the augmented Lagrangian with respect to the optimization variables, keeping the Lagrange multipliers and penalty parameter fixed.
+
+\item \textbf{Lagrange multiplier update}: Update the Lagrange multipliers based on the constraint violations.
+
+\item \textbf{Penalty parameter update}: Increase the penalty parameter if the constraint violations have not decreased sufficiently.
+\end{enumerate}
+
+\subsection{Stochastic Inner Optimizers}
+
+The key innovation in our implementation is the use of stochastic optimizers for the inner minimization problem. The implementation supports various stochastic optimizers from the Optimisers.jl package, including:
+
+\begin{enumerate}
+\item \textbf{SGD}: Simple stochastic gradient descent with a fixed learning rate.
+
+\item \textbf{Momentum}: SGD with momentum for accelerated convergence.
+
+\item \textbf{Adam}: Adaptive moment estimation, combining momentum and adaptive learning rates.
+
+\item \textbf{RMSProp}: Root mean square propagation, which adapts learning rates based on recent gradient magnitudes.
+\end{enumerate}
+
+These optimizers are integrated into the augmented Lagrangian framework through a custom inner optimization loop that handles batched training data and stochastic gradient estimates.
+
+\subsection{Mini-Batch Training Support}
+
+The implementation includes special support for mini-batch training, which is essential for efficiently handling large datasets. This support includes:
+
+\begin{enumerate}
+\item \textbf{DataLoader integration}: The OptimizationProblem constructor accepts a MLUtils.DataLoader object, which provides batched access to training data.
+
+\item \textbf{Epoch-based training}: The solve function accepts an epochs parameter, specifying the number of passes through the training data.
+
+\item \textbf{Progress tracking}: The implementation tracks progress at both the batch and epoch levels, providing informative feedback during training.
+\end{enumerate}
+
+\subsection{Constraint Handling}
+
+The implementation provides flexible constraint handling through the OptimizationFunction and OptimizationProblem constructors. Users can specify:
+
+\begin{enumerate}
+\item \textbf{Equality constraints}: Constraints of the form $h(x) = 0$, specified by setting equal values in lcons and ucons.
+
+\item \textbf{Inequality constraints}: Constraints of the form $g(x) \leq 0$, specified by setting appropriate values in lcons and ucons.
+
+\item \textbf{Constraint gradients}: Gradients of constraints can be provided explicitly or generated automatically using the chosen automatic differentiation backend.
+\end{enumerate}
+
+This flexible constraint specification allows users to express a wide range of constrained optimization problems within the Optimization.jl framework.
+
+\section{Integration with the Julia Ecosystem}
+
+One of the key strengths of our software implementation is its integration with the broader Julia ecosystem for scientific computing. This integration enables users to combine our optimization tools with other packages for data analysis, numerical computing, and visualization.
+
+\subsection{Automatic Differentiation Ecosystem}
+
+Optimization.jl leverages Julia's rich ecosystem of automatic differentiation tools through a consistent interface defined in ADTypes.jl. This allows users to:
+
+\begin{enumerate}
+\item \textbf{Choose the most appropriate AD backend}: Different AD systems have different strengths and trade-offs. ForwardDiff.jl is often faster for problems with few variables, while Zygote.jl is typically more efficient for neural networks.
+
+\item \textbf{Mix AD with hand-coded derivatives}: Users can provide explicit gradients for some parts of their objective function while letting the AD system handle the rest.
+
+\item \textbf{Leverage library-specific AD optimizations}: Many Julia libraries provide custom AD rules that improve the efficiency of differentiation for their specific operations.
+\end{enumerate}
+
+\subsection{Differential Equations Ecosystem}
+
+The integration with DifferentialEquations.jl, a powerful suite for solving differential equations, is particularly important for scientific applications. This integration allows users to:
+
+\begin{enumerate}
+\item \textbf{Optimize parameters of differential equation models}: Users can define objective functions that involve solving differential equations, and Optimization.jl will handle the interface with the differential equation solver.
+
+\item \textbf{Train neural ODEs and other SciML models}: The integration enables efficient training of scientific machine learning models that combine differential equations with neural networks.
+
+\item \textbf{Leverage sensitivity analysis techniques}: The SciMLSensitivity.jl package provides efficient methods for computing gradients of differential equation solutions, which Optimization.jl can use for optimization.
+\end{enumerate}
+
+\begin{figure}
+\centering
+\includegraphics[width=\textwidth]{ecosystem_integration.png}
+\caption{Integration of Optimization.jl with the broader Julia ecosystem for scientific computing, showing key connections with automatic differentiation, differential equations, and other domains.}
+\label{fig:ecosystem}
+\end{figure}
+
+\subsection{Machine Learning Ecosystem}
+
+The integration with Julia's machine learning ecosystem enables applications in deep learning and statistical modeling:
+
+\begin{enumerate}
+\item \textbf{Training neural networks}: Optimization.jl can be used to train neural networks defined using packages like Flux.jl and Lux.jl.
+
+\item \textbf{Bayesian inference}: The integration with Turing.jl enables gradient-based inference methods for Bayesian models.
+
+\item \textbf{Reinforcement learning}: Optimization.jl can be used for policy optimization in reinforcement learning applications.
+\end{enumerate}
+
+\subsection{Domain-Specific Applications}
+
+The generality and extensibility of Optimization.jl enable its application across diverse scientific domains:
+
+\begin{enumerate}
+\item \textbf{Computational physics}: Optimizing parameters in physics models and simulations.
+
+\item \textbf{Computational biology}: Parameter estimation for biological systems and molecular modeling.
+
+\item \textbf{Control systems}: Designing and optimizing controllers for dynamic systems.
+
+\item \textbf{Signal processing}: Optimizing filters and other signal processing components.
+
+\item \textbf{Operations research}: Solving scheduling, routing, and resource allocation problems.
+\end{enumerate}
+
+This breadth of applications demonstrates the impact of a well-designed, composable optimization framework for scientific computing.
+
+\section{Documentation and Examples}
+
+A critical aspect of scientific software is comprehensive documentation and examples that help users apply the tools to their specific problems. Our documentation strategy includes:
+
+\subsection{API Documentation}
+
+Each component of the software is documented at the API level, with clear descriptions of functions, types, and their parameters. The documentation is automatically generated from docstrings in the code, ensuring that it stays in sync with the implementation.
+
+\subsection{Tutorials and Examples}
+
+The documentation includes a range of tutorials and examples, covering common use cases and illustrating best practices. These include:
+
+\begin{enumerate}
+\item \textbf{Basic usage}: Getting started with Optimization.jl, defining problems, and selecting solvers.
+
+\item \textbf{Advanced topics}: Working with constraints, custom gradient definitions, and specialized problem types.
+
+\item \textbf{Domain-specific examples}: Applications in machine learning, differential equations, control systems, and other domains.
+\end{enumerate}
+
+\subsection{Performance Tips}
+
+The documentation provides guidance on optimizing performance, including:
+
+\begin{enumerate}
+\item \textbf{Choosing the right AD backend}: Guidelines for selecting the most appropriate automatic differentiation method based on problem characteristics.
+
+\item \textbf{Exploiting problem structure}: Techniques for leveraging sparsity, symmetry, and other structural properties to improve performance.
+
+\item \textbf{Hardware acceleration}: Tips for effectively using GPU computing and other forms of hardware acceleration.
+\end{enumerate}
+
+\subsection{Community Resources}
+
+Beyond the official documentation, the software is supported by a range of community resources:
+
+\begin{enumerate}
+\item \textbf{Forum discussions}: The Julia Discourse forum includes a section dedicated to optimization, where users can ask questions and share experiences.
+
+\item \textbf{Chat channels}: Real-time support is available through the Julia Slack and Zulip chat platforms.
+
+\item \textbf{Video tutorials}: Community members have created video tutorials covering various aspects of the software.
+\end{enumerate}
+
+These resources form a supportive ecosystem that helps users overcome challenges and make the most of the software.
+
+\section{Case Studies}
+
+To illustrate the practical impact of our software implementation, we present several case studies drawn from real-world applications across different domains.
+
+\subsection{Training a Physics-Informed Neural Network}
+
+Physics-informed neural networks (PINNs) combine the approximation power of neural networks with physical constraints derived from governing equations. Training PINNs requires minimizing a loss function that includes both data fitting terms and physics residual terms:
+
+\begin{equation}
+\mathcal{L} = \mathcal{L}_{data} + \lambda \mathcal{L}_{physics}
+\end{equation}
+
+where $\mathcal{L}_{data}$ measures the discrepancy between network predictions and observed data, $\mathcal{L}_{physics}$ measures the violation of physical laws, and $\lambda$ is a weight parameter.
+
+Using Optimization.jl, we can define this problem and solve it using a variety of optimizers. The example below shows how to train a PINN for solving a partial differential equation using the ADAM optimizer:
+
+\begin{verbatim}
+using Optimization, OptimizationOptimisers, Lux
+
+# Define the neural network
+model = Chain(Dense(1, 32, tanh), Dense(32, 1))
+
+# Define the loss function, including data and physics components
+function loss(θ, p)
+    x_data, y_data, x_physics = p
+    
+    # Data loss
+    y_pred = model(x_data, θ)[1]
+    data_loss = mean((y_pred - y_data).^2)
+    
+    # Physics loss
+    u = x -> model([x], θ)[1][1]
+    du_dx = x -> ForwardDiff.derivative(u, x)
+    d2u_dx2 = x -> ForwardDiff.derivative(du_dx, x)
+    
+    physics_loss = mean(d2u_dx2.(x_physics) .+ u.(x_physics))
+    
+    # Total loss
+    return data_loss + 0.1 * physics_loss
+end
+
+# Create optimization problem
+optf = OptimizationFunction(loss, Optimization.AutoZygote())
+prob = OptimizationProblem(optf, parameters, data)
+
+# Solve using ADAM
+sol = solve(prob, Adam(0.01), maxiters=1000)
+\end{verbatim}
+
+This example demonstrates how Optimization.jl simplifies the integration of neural networks, automatic differentiation, and physical constraints, enabling efficient training of PINNs for scientific applications.
+
+\subsection{Parameter Estimation in Epidemiological Models}
+
+Epidemiological models, such as the SIR (Susceptible-Infected-Recovered) model, are commonly used to understand the spread of infectious diseases. Estimating the parameters of these models from observed data is a challenging optimization problem due to the nonlinear dynamics and constraints on the parameters.
+
+Using Optimization.jl with the stochastic augmented Lagrangian method, we can solve this parameter estimation problem while respecting biological constraints:
+
+\begin{verbatim}
+using Optimization, DifferentialEquations
+
+# Define the SIR model
+function sir_model!(du, u, p, t)
+    S, I, R = u
+    β, γ = p
+    
+    du[1] = -β * S * I
+    du[2] = β * S * I - γ * I
+    du[3] = γ * I
+end
+
+# Define the loss function
+function loss(p, data)
+    β, γ = p
+    tspan = (0.0, 60.0)
+    u0 = [0.99, 0.01, 0.0]
+    prob = ODEProblem(sir_model!, u0, tspan, p)
+    sol = solve(prob, Tsit5(), saveat=data.times)
+    
+    # Compare model predictions with observed data
+    return sum(abs2, sol - data.observations)
+end
+
+# Define constraints
+function constraints(res, p, data)
+    β, γ = p
+    
+    # Constraints: β > 0, γ > 0, R₀ = β/γ < 2.5
+    res[1] = p[1]        # β
+    res[2] = p[2]        # γ
+    res[3] = p[1] / p[2] # R₀
+end
+
+# Create optimization problem
+optf = OptimizationFunction(loss, Optimization.AutoForwardDiff(), cons=constraints)
+prob = OptimizationProblem(optf, [0.5, 0.1], data, lcons=[0.0, 0.0, 0.0], ucons=[Inf, Inf, 2.5])
+
+# Solve using stochastic augmented Lagrangian method
+sol = solve(prob, SALM(inner_optimizer=Adam()), maxiters=100)
+\end{verbatim}
+
+This example showcases how Optimization.jl seamlessly integrates with differential equation solvers, automatic differentiation, and constraint handling, enabling sophisticated parameter estimation for complex dynamical systems.
+
+\subsection{Robust Covariance Estimation on the SPD Manifold}
+
+Estimating covariance matrices that are robust to outliers is important in many statistical applications. Tyler's M-estimator is a popular choice for robust covariance estimation, but the optimization problem is non-convex in the Euclidean sense, requiring specialized algorithms.
+
+Using Optimization.jl with the disciplined geodesically convex programming framework, we can exploit the geodesic convexity of this problem on the manifold of symmetric positive definite matrices:
+
+\begin{verbatim}
+using Optimization, OptimizationManopt, SymbolicAnalysis, Manifolds
+
+# Define the manifold
+M = SymmetricPositiveDefinite(d)
+
+# Define Tyler's M-estimator objective
+function tyler_objective(Σ, data)
+    d = size(Σ, 1)
+    n = length(data)
+    
+    inv_Σ = inv(Σ)
+    
+    obj = 0.0
+    for x in data
+        obj += log(dot(x, inv_Σ * x))
+    end
+    
+    obj = obj / n + log(det(Σ)) / d
+    return obj
+end
+
+# Check geodesic convexity
+analysis = analyze(tyler_objective, M)
+println("Geodesic convexity: ", analysis.gcurvature)
+
+# Create optimization problem
+optf = OptimizationFunction(tyler_objective, Optimization.AutoZygote())
+prob = OptimizationProblem(optf, initial_guess, data, manifold=M)
+
+# Solve using Riemannian optimization
+sol = solve(prob, GradientDescentOptimizer())
+\end{verbatim}
+
+This example demonstrates how the integration of SymbolicAnalysis.jl with Optimization.jl enables the verification and exploitation of geodesic convexity for optimization on Riemannian manifolds.
+
+\section{Conclusion}
+
+This chapter has presented the software design and implementation of the optimization methods developed in this thesis. The implementation is centered around Optimization.jl, a unified framework for optimization in Julia, with specialized packages for disciplined geodesically convex programming, GPU-accelerated particle swarm optimization, and stochastic augmented Lagrangian methods.
+
+The design principles of composability, extensibility, performance, and user experience have guided our implementation, resulting in software that is both powerful and accessible. The integration with the broader Julia ecosystem for scientific computing enables applications across diverse domains, from machine learning to differential equations and beyond.
+
+The case studies presented demonstrate the practical impact of our software, showing how it enables researchers to solve complex optimization problems with minimal overhead. The comprehensive documentation and community resources ensure that users can effectively apply these tools to their specific problems.
+
+In the next chapter, we evaluate the performance of our methods on a range of benchmark problems and real-world applications, demonstrating the practical advantages of our approaches over existing methods.

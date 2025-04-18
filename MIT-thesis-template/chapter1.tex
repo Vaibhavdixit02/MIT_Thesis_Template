@@ -2,156 +2,126 @@
 % Version: 1.07, 2024/09/26
 % Documentation: https://ctan.org/pkg/mitthesis
 
-
 \chapter{Introduction}
 
-\lipsum[1-2] Postremo aliquos futuros suspicor, qui me ad alias litteras vocent, genus hoc scribendi, etsi sit elegans, personae tamen et dignitatis esse negent~\cite{DKE1969,ww1920,kirk2288a,churchill1948,gibbs1863}.
+\section{Mathematical Optimization: A Universal Language}
 
-\section[A section discussing the first issue: \(J/\psi\)]{A section discussing the first issue: \ifpdftex\(\bm{J}/\bm{\psi}\)\else{\(\symbfit{J/\psi}\)}\fi}
+Optimization stands as one of the most fundamental paradigms in computational science, providing a universal framework for solving problems across disparate fields. At its core, optimization involves finding the best solution from a set of possible alternatives, typically by minimizing or maximizing an objective function subject to constraints. This conceptual simplicity belies the profound complexity that emerges when optimization is applied to real-world problems.
 
+From the allocation of resources in economics to the training of deep neural networks in artificial intelligence, from the design of aircraft wings in engineering to the prediction of protein structures in computational biology, optimization serves as a common mathematical language. This universality stems from our natural tendency to seek optimal solutions—whether consciously through formal algorithms or unconsciously through evolutionary processes.
 
-We begin with some ideas from the literature \cite{Fong2015,sharpe1}. 
-\begin{equation}\label{eqn:1}
-\frac{\partial}{\partial t}\left[\rho\bigl(e + \lvert\vec{u}\rvert^2\big/2\bigr)\right]  + \nabla\cdot\left[\rho\bigl(h + \lvert\vec{u}\rvert^2\big/2 \bigr)\vec{u}\right]
- ={}-\nabla \cdot \vec{q} +  \rho \vec{u}\cdot\vec{g}+ \frac{\partial}{\partial x_j}\bigl(d_{ji}u_i\bigr)
-\end{equation}
- \lipsum[3]
+The mathematical formulation of an optimization problem typically takes the form:
 
-\lipsum[4] And more citations~\cite{sharpe1,GSL}.  Then we write some more and include our citations~\cite{Swaminathan2017IDABRO,dlmf,amsmath}. The configuration is shown in Fig.~\ref{fig:golden2}.
-
-%%%%%%%%%%%%%%%%%  begin figure  %%%%%%%%%%%%%%%%%%%%%%%%%%%
-\begin{figure}[t]
-% sample images are from mwe package, but should be found by latex in the tex tree w/o loading that package
-\begin{subfigure}[c]{0.495\textwidth}
-\centering{\includegraphics[alt={sample image},width=0.99\textwidth]{example-image-c}}%
-\subcaption{\label{fig:golden}}
-\end{subfigure}
-%%%%%%%% don't leave a break here
-\begin{subfigure}[c]{0.495\textwidth}
-\centering{\includegraphics[alt={sample image},width=0.99\textwidth]{example-image-c}}%
-\subcaption{\label{fig:golden2}}%
-\end{subfigure}%
-\caption{A figure with two subfigures: (a) first subfigure; (b) second subfigure.\label{fig:4}}
-\end{figure}
-%%%%%%%%%%%%%%%%%%%  end figure  %%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-
-\lipsum[4]
-
-%% note use of \ref* here to avoid placing a nested link in the table of contents
-\subsection[Subsection~eqn.~(\ref*{eqn:WT1})]{Subsection~eqn.~\eqref{eqn:WT1}}
-\lipsum[5-6]
-
-\subsubsection{A subsubsection}
-\lipsum[7]
-
-\begin{equation}\label{eqn:WT1}
-L(\ifpdftex\bm{A}\else\symbfup{A}\fi) = \begin{pmatrix}
-\dfrac\varphi{(\varphi_1,\varepsilon_1)}			& 0 												 & \hdotsfor{3} 							& 0 \\[4\jot]
-\dfrac{\varphi k_{2,1}}{(\varphi_2,\varepsilon_1)}	& \dfrac\varphi{(\varphi_2,\varepsilon_2)}			 & 0 										& \hdotsfor{2} & 0 \\[4\jot]
-\dfrac{\varphi k_{3,1}}{(\varphi_3,\varepsilon_1)}	& \dfrac{\varphi k_{3,2}}{(\varphi_3,\varepsilon_2)} & \dfrac\varphi{(\varphi_3,\varepsilon_3)}	& 0 & \hdotsfor{1} & 0 \\[\jot]
-\vdots 												&  													 &  & \smash{\rotatebox{15}{$\ddots$}} &  & \vdots \\[\jot]
-\dfrac{\varphi k_{n-1, 1}}{(\varphi_{n-1},\varepsilon_1)}		& \dfrac{\varphi k_{n-1, 2}}{(\varphi_{n-1},\varepsilon_2)} & \hdotsfor{1} & 
-	\dfrac{\varphi k_{n-1,n-2}}{(\varphi_{n-1},\varepsilon_{n-2})}	& \dfrac{\varphi}{(\varphi_{n-1},\varepsilon_{n-1})} 		& 0 \\[4\jot]
-\dfrac{\varphi k_{n,1}}{(\varphi_n,\varepsilon_1)}				& \dfrac{\varphi k_{n,2}}{(\varphi_n,\varepsilon_2)}		& \hdotsfor{2}	&
-	\dfrac{\varphi k_{n,n-1}}{(\varphi_n,\varepsilon_{n-1})} 		& \dfrac{\varphi}{(\varphi_n,\varepsilon_n)}
-\end{pmatrix}
+\begin{equation}
+\min_{x \in \mathcal{X}} f(x) \quad \text{subject to} \quad g_i(x) \leq 0, \, h_j(x) = 0
 \end{equation}
 
-\section{Description our paradigm}\label{ch1:theidea}
+where $f(x)$ represents the objective function to be minimized, $g_i(x)$ and $h_j(x)$ represent inequality and equality constraints respectively, and $\mathcal{X}$ defines the domain of the problem. This deceptively simple formulation encompasses an enormous variety of problems, from linear programming to complex non-convex optimization over manifolds.
 
-\lipsum[8] No dissertation is complete without footnotes.\footnote{First footnote. $a_h = F_m$ See section~\ref{sec:stratified-flow}.}\footnote{Another interesting detail.}\footnote{And another really important idea to have in mind~\cite{reynolds1958,clauser56,lienhard2020,johnson1980,johnson1965,mpl}.} 
+Despite this universality, optimization problems vary tremendously in their computational tractability. Convex optimization problems—where both the objective function and feasible region are convex—possess favorable properties that guarantee global optimality of local solutions. These problems have been extensively studied, with efficient algorithms and robust software implementations widely available. However, many real-world problems are inherently non-convex, presenting significant challenges that form the primary focus of this thesis.
 
-\begin{figure}[t]
-% sample image is from mwe package, but should be found by latex in the tex tree w/o loading that package
-\centering\includegraphics[alt={sample image},width=6.67cm]{example-image-b} 
-\caption{Caption text\label{example-image-b}~\cite{GSL}.}
-\end{figure}
+\section{The Challenge of Non-Convex Optimization}
 
+Non-convex optimization problems permeate modern computational science and engineering. The training of deep neural networks, parameter estimation in complex dynamical systems, and many problems in statistical inference involve objective functions with multiple local minima, saddle points, and complex geometrical constraints.
 
-\subsection{Conversion to a metaheuristic}
+The fundamental challenge of non-convex optimization lies in the gap between local and global optimality. In convex problems, any local minimum is also a global minimum, allowing optimization algorithms to converge to globally optimal solutions regardless of their starting point. In contrast, non-convex problems may contain numerous local minima, extended saddle points, and complex topological structures that trap optimization algorithms away from the global optimum.
 
-\lipsum[11-12] This concept is discussed further in section~\ref{sec:stratified-flow}, and Refs.~\cite{euler1740,fourier1822}.
+These challenges manifest in several common scenarios:
 
+\begin{enumerate}
+\item \textbf{Multiple local minima}: Non-convex functions typically have many local minima, and determining which represents the global minimum can be computationally intractable.
 
+\item \textbf{Saddle points}: High-dimensional optimization landscapes often contain saddle points where the gradient vanishes but the Hessian has both positive and negative eigenvalues. These points can significantly slow down gradient-based methods.
 
-\section{Other generalizations}
+\item \textbf{Ill-conditioning}: Non-convex problems frequently exhibit regions where the condition number of the Hessian is extremely large, causing gradient-based methods to oscillate or progress extremely slowly.
 
-\subsection{The most general case}
+\item \textbf{Plateaus and ravines}: Optimization trajectories often encounter nearly-flat regions or narrow valleys that are difficult to navigate efficiently.
+\end{enumerate}
 
-\lipsum[7] And another citation, so that our sources will be unambiguous~\cite{montijano2014}.
-\begin{gather}
-\ce{x Na(NH4)HPO4 ->[\Delta] (NaPO3)_x + x NH3 ^ + x H2O} \\[0.5em]
-\ce{^234_90Th -> ^0_-1$\beta${} + ^234_91Pa} \\[0.5em]
-\ce{SO4^2- + Ba^2+ -> BaSO4 v} \\[0.5em]
-\ce{Zn^2+
-<=>[+ 2OH-][+ 2H+]
-$\underset{\textrm{amphoteric hydroxide}}{\ce{Zn(OH)2 v}}$
-<=>[+ 2OH-][+ 2H+]
-$\underset{\textrm{tetrahydroxozincate}}{\ce{[Zn(OH)4]^2-}}$
-}
-\end{gather}
-These examples of chemical formul\ae\ are copied directly from the documentation of the \texttt{mhchem} package, which was used to typeset them.
+The practical consequences of these challenges are significant. In machine learning, they may lead to models that generalize poorly. In scientific computing, they may result in parameter estimates that fail to capture the true dynamics of the system. In engineering design, they may yield suboptimal solutions that waste resources or underperform.
 
-\section{Baroclinic generation of vorticity\label{sec:stratified-flow}}
+Traditional approaches to non-convex optimization include global optimization methods like simulated annealing and genetic algorithms, which attempt to explore the entire solution space at the cost of computational efficiency, and local methods like gradient descent and quasi-Newton methods, which converge efficiently to local optima but may miss the global solution. Recently, stochastic methods have gained prominence, particularly in machine learning, for their ability to escape local minima and efficiently handle large datasets.
 
-Substitution of the particle acceleration and application Stokes theorem leads to the \textit{Kelvin-Bjerknes circulation theorem}, for
-$\rho \neq \textrm{fn}(p)$:
-\begin{align}
-\frac{d\Gamma}{dt} &{}= \frac{d}{dt} \int_{\mathcal{C}} \mathbf{u} \cdot d\mathbf{r}\\
-				   &{}= \int_{\mathcal{C}} \frac{D\mathbf{u}}{Dt} \cdot d\mathbf{r} + \underbrace{\int_{\mathcal{C}} \mathbf{u}\cdot d\biggl( \frac{d\mathbf{r}}{dt}\Biggr)}_{=\, 0} \\[-2pt]
-                   &{}= \iint_{\mathcal{S}} \nabla \times \frac{D\mathbf{u}}{Dt}  \cdot d\mathbf{A}\\
-                   &{}= \iint_{\mathcal{S}}  \nabla p \times \nabla \left( \frac{1}{\rho}\right) \cdot d\mathbf{A}
-\end{align}
+Despite these advances, non-convex optimization remains challenging, especially when problems involve additional structures like constraints or manifold domains. This thesis addresses these challenges through three complementary approaches: extending the notion of convexity to Riemannian manifolds, developing hybrid global-local optimization methods accelerated by GPU computing, and creating augmented Lagrangian methods with stochastic inner optimizers.
 
-Baroclinic generation of vorticity accounts for the sea breeze and various other atmospheric currents in which temperature, rather than pressure, creates density gradients. Further, this phenomenon accounts for ocean currents in straits joining more and less saline seas, with surface currents flowing from the fresher to the saltier water and with bottom current going oppositely.
+\section{Optimization on Manifolds}
 
-%% Nomenclature list is optional
-%
-%  This environment takes three optional arguments:
-%		[1] adjust space between symbol and definition
-%		[2] name (heading) of the nomenclature list
-%		[3] level - can be "section" or "chapter" depending on whether you
-%			have one nomenclature list for whole thesis or one for each
-%			chapter. 
-\begin{nomenclature}[2em][Nomenclature for Chapter~1][section]
-\EntryHeading{Roman letters}
-\entry{$\mathcal{C}$}{material curve}
-\entry{$\mathbf{r}$}{material position [m]}
-\entry{$\mathbf{u}$}{velocity [m s$^{-1}$]}
-\EntryHeading{Greek letters}
-\entry{$\Gamma$}{circulation [m$^2$ s$^{-1}$]}
-\entry{$\rho$}{mass density [kg m$^{-3}$]}
-\end{nomenclature}
+Many optimization problems naturally arise on spaces that are not flat Euclidean spaces but curved manifolds. Examples include optimization over the set of rotation matrices in robotics and computer vision, positive definite matrices in statistics and engineering, and probability distributions in machine learning and information theory.
 
-%%%%%%%%%%%%%%% begin table %%%%%%%%%%%%%%%%%% 
-\begin{table}[t]
-\caption{The error function and complementary error function}\label{tab:1}%
-\centering{%
-\begin{tabular*}{0.8\textwidth}{@{\hspace*{1.5em}}@{\extracolsep{\fill}}ccc!{\hspace*{3.em}}ccc@{\hspace*{1.5em}}}
-\\[-0.5em]
-\toprule
-\multicolumn{1}{@{\hspace*{1.5em}}c}{$x$\rule{0pt}{8pt}} &
-\multicolumn{1}{c}{$\erf{x}$} &
-\multicolumn{1}{c!{\hspace*{3.em}}}{$\erf{x}$} &
-\multicolumn{1}{c}{$x$} &
-\multicolumn{1}{c}{$\erfc{x}$} &
-\multicolumn{1}{c@{\hspace*{1.5em}}}{$\erfc{x}$} \\ \midrule
-0.00 & 0.00000 & 1.00000 & 1.10 & 0.88021 & 0.11980 \\
-0.05 & 0.05637 & 0.94363 & 1.20 & 0.91031 & 0.08969 \\
-0.10 & 0.11246 & 0.88754 & 1.30 & 0.93401 & 0.06599 \\
-0.15 & 0.16800 & 0.83200 & 1.40 & 0.95229 & 0.04771 \\
-0.20 & 0.22270 & 0.77730 & 1.50 & 0.96611 & 0.03389 \\
-0.30 & 0.32863 & 0.67137 & 1.60 & 0.97635 & 0.02365 \\
-0.40 & 0.42839 & 0.57161 & 1.70 & 0.98379 & 0.01621 \\
-0.50 & 0.52050 & 0.47950 & 1.80 & 0.98909 & 0.01091 \\
-0.60 & 0.60386 & 0.39614 & 1.82\makebox[0pt][l]{14} & 0.99000 & 0.01000 \\
-0.70 & 0.67780 & 0.32220 & 1.90 & 0.99279 & 0.00721 \\
-0.80 & 0.74210 & 0.25790 & 2.00 & 0.99532 & 0.00468 \\
-0.90 & 0.79691 & 0.20309 & 2.50 & 0.99959 & 0.00041 \\
-1.00 & 0.84270 & 0.15730 & 3.00 & 0.99998 & 0.00002 \\
-\bottomrule
-\end{tabular*}
-}%
-\end{table}
-%%%%%%%%%%%%%%%% end table %%%%%%%%%%%%%%%%%%% 
+Manifold optimization extends traditional optimization techniques to these non-Euclidean spaces by respecting their intrinsic geometry. Rather than imposing constraints to keep iterates on the manifold, manifold optimization methods work directly on the manifold, using concepts like tangent spaces, retractions, and geodesics to generalize notions of descent directions and line searches.
 
+The advantages of manifold optimization are both computational and conceptual. Computationally, working directly on the manifold often leads to more efficient algorithms by reducing the dimensionality of the problem and avoiding the ill-conditioning associated with enforcing constraints. Conceptually, manifold optimization provides a natural framework for problems where the solution space has inherent geometric structure.
+
+However, manifold optimization introduces additional challenges. The curvature of the manifold affects the convexity properties of functions defined on it, and standard convexity in the Euclidean sense does not directly translate to manifolds. This has motivated the development of geodesic convexity—convexity along geodesics rather than straight lines—as a generalization of traditional convexity.
+
+While geodesic convexity provides a theoretical foundation for optimization on manifolds, practical tools for verifying and exploiting this property have been limited. This thesis addresses this gap by introducing Disciplined Geodesically Convex Programming (DGCP), a framework that extends the successful concept of disciplined convex programming to the manifold setting.
+
+\section{The Computational Perspective}
+
+The theoretical study of optimization algorithms has traditionally focused on asymptotic properties like convergence rates and complexity bounds. While these analyses provide valuable insights, they often fail to capture the practical performance of algorithms on real-world problems. This thesis adopts a computational perspective that places equal emphasis on theoretical guarantees and practical implementation.
+
+This perspective is informed by statistical learning theory, which studies the generalization capabilities of learning algorithms. In statistical learning, optimization serves as a means to an end—finding parameters that minimize empirical risk—but the ultimate goal is good performance on unseen data. This distinction highlights the importance of considering not just whether an algorithm converges to a local minimum, but how the properties of that minimum affect the overall performance of the model.
+
+The computational perspective also acknowledges the importance of hardware considerations in modern optimization. The advent of GPU computing has dramatically accelerated certain types of numerical computations, particularly those involving dense linear algebra. However, effectively leveraging this hardware requires algorithms specifically designed for parallel execution. This thesis explores how GPU acceleration can be applied to global optimization methods, particularly for problems involving numerical simulations.
+
+Furthermore, the computational perspective emphasizes the role of software in making theoretical advances accessible to practitioners. Sophisticated optimization algorithms are of limited use if they cannot be easily applied to real problems. This thesis therefore places significant emphasis on software implementation, providing tools that enable researchers and engineers to apply advanced optimization techniques without specialized knowledge of the underlying mathematics.
+
+\section{Software for Scientific Computing and Machine Learning}
+
+The landscape of scientific computing and machine learning has been transformed by the development of specialized software frameworks. These frameworks provide high-level abstractions that enable users to express complex computational problems concisely, while efficiently executing low-level operations on modern hardware.
+
+In optimization, software frameworks serve several critical roles:
+
+\begin{enumerate}
+\item \textbf{Abstraction}: They provide a common interface for defining optimization problems, allowing users to focus on modeling rather than implementation details.
+
+\item \textbf{Algorithm implementation}: They offer robust implementations of standard optimization algorithms, incorporating numerical safeguards and performance optimizations developed over decades of research.
+
+\item \textbf{Differentiation}: Many frameworks provide automatic differentiation capabilities, computing exact gradients without requiring users to derive and implement them manually.
+
+\item \textbf{Hardware acceleration}: They enable transparent use of specialized hardware like GPUs, often providing order-of-magnitude speedups for suitable problems.
+\end{enumerate}
+
+Traditional scientific computing frameworks like MATLAB and specialized optimization libraries like CPLEX and Gurobi have been staples in research and industry for decades. More recently, machine learning frameworks like TensorFlow and PyTorch have gained prominence, particularly for gradient-based optimization of neural networks.
+
+These frameworks have significantly lowered the barrier to applying optimization techniques, but they often operate as "black boxes" that obscure the underlying algorithms. This can limit users' ability to understand and extend these methods for specialized applications. Additionally, the fragmentation of optimization software across different domains and languages creates artificial barriers between fields that could benefit from shared techniques.
+
+\section{Julia and Optimization.jl}
+
+The Julia programming language represents a significant advance in scientific computing, offering both high-level expressiveness and performance comparable to low-level languages like C and Fortran. Julia's design philosophy emphasizes composability, allowing independent libraries to work together seamlessly, and multiple dispatch, enabling generic programming without sacrificing performance.
+
+These features make Julia particularly well-suited for optimization software. The ability to write high-performance code in a high-level language eliminates the traditional trade-off between development time and execution speed. The multiple dispatch system allows algorithms to be specialized for different problem structures without code duplication. And the composability of Julia packages enables optimization libraries to leverage advances in automatic differentiation, linear algebra, and other areas without reimplementing these capabilities.
+
+Optimization.jl, the software framework developed as part of this thesis, embodies these principles to provide a unified interface to diverse optimization methods. Unlike previous frameworks that typically focus on specific classes of problems or algorithms, Optimization.jl offers a consistent interface to a wide range of optimization techniques, from traditional gradient-based methods to modern evolutionary algorithms, from unconstrained optimization to constrained problems on manifolds.
+
+Key features of Optimization.jl include:
+
+\begin{enumerate}
+\item \textbf{Unified interface}: A common problem specification format that works across dozens of optimization algorithms, allowing users to experiment with different methods without changing their problem definition.
+
+\item \textbf{Automatic differentiation integration}: Seamless support for multiple automatic differentiation backends, enabling efficient computation of gradients, Hessians, and other derivatives.
+
+\item \textbf{Constraint handling}: A flexible constraint specification system that supports both equality and inequality constraints across multiple solvers.
+
+\item \textbf{Extensibility}: A plugin system that allows new optimization algorithms to be integrated without modifications to the core package.
+
+\item \textbf{Performance}: Carefully optimized implementations that leverage Julia's performance features to provide efficient execution, particularly for problems that involve numerical simulations.
+\end{enumerate}
+
+Optimization.jl has been adopted by researchers across numerous domains, including control systems, computational biology, econometrics, and machine learning. This broad adoption reflects both the universality of optimization problems and the practical utility of a unified software framework.
+
+\section{Thesis Contributions and Organization}
+
+This thesis addresses fundamental challenges in non-convex optimization through three complementary approaches:
+
+\begin{enumerate}
+\item \textbf{Disciplined Geodesically Convex Programming (DGCP)}: We introduce a framework for verifying and exploiting geodesic convexity on Riemannian manifolds, extending the concept of disciplined convex programming to non-Euclidean spaces. This framework enables automatic verification of problem structure and provides theoretical guarantees for a class of non-convex problems.
+
+\item \textbf{GPU-Accelerated Hybrid Optimization}: We develop a hybrid optimization method that combines the global exploration capabilities of Particle Swarm Optimization with the efficient local convergence of L-BFGS. This method, accelerated by GPU computing, efficiently solves inverse problems with multiple local minima.
+
+\item \textbf{Augmented Lagrangian with Stochastic Inner Optimizers}: We propose an augmented Lagrangian approach that incorporates stochastic optimizers like Adam for the inner minimization problems. This approach bridges traditional constrained optimization with modern machine learning techniques.
+\end{enumerate}
+
+Throughout these contributions, we emphasize software implementation, providing tools that make these advanced techniques accessible to practitioners. The software components are unified under the Optimization.jl framework, which provides a consistent interface to diverse optimization methods while enabling specialized implementations for particular problem classes.
+
+In the following chapters, we delve into the theoretical foundations, algorithmic details, and practical applications of these approaches. Throughout, we maintain a computational perspective informed by statistical learning theory, emphasizing both theoretical guarantees and practical performance on real-world problems. Our goal is not only to advance the theoretical understanding of non-convex optimization but also to provide practical tools that researchers and engineers can readily apply to their specific domains.

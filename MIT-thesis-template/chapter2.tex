@@ -1,0 +1,346 @@
+\chapter{Background and Foundations}
+
+This chapter provides the mathematical foundations for the optimization techniques developed in this thesis. We begin with a review of general optimization theory, emphasizing the challenges posed by non-convex problems. We then introduce the key concepts of Riemannian geometry and geodesic convexity that underpin our work on optimization over manifolds. Finally, we discuss the role of automatic differentiation in modern optimization algorithms and provide background on the specific techniques—particle swarm optimization, quasi-Newton methods, and augmented Lagrangian approaches—that form the basis of our hybrid optimization methods.
+
+\section{Mathematical Optimization}
+
+Mathematical optimization is concerned with finding the best element from a set of alternatives, as defined by an objective function. Formally, an optimization problem can be stated as:
+
+\begin{equation}
+\min_{x \in \mathcal{X}} f(x) \quad \text{subject to} \quad g_i(x) \leq 0, \, h_j(x) = 0
+\end{equation}
+
+where $f: \mathcal{X} \rightarrow \mathbb{R}$ is the objective function, $g_i: \mathcal{X} \rightarrow \mathbb{R}$ are inequality constraints, $h_j: \mathcal{X} \rightarrow \mathbb{R}$ are equality constraints, and $\mathcal{X}$ is the domain of the problem.
+
+\subsection{Convex Optimization}
+
+A particularly well-studied class of optimization problems are convex optimization problems, which satisfy the following conditions:
+
+\begin{enumerate}
+\item The objective function $f$ is convex:
+\begin{equation}
+f(\lambda x + (1-\lambda)y) \leq \lambda f(x) + (1-\lambda)f(y), \quad \forall x,y \in \mathcal{X}, \, \forall \lambda \in [0,1]
+\end{equation}
+
+\item The inequality constraint functions $g_i$ are convex.
+
+\item The equality constraint functions $h_j$ are affine:
+\begin{equation}
+h_j(x) = a_j^T x + b_j
+\end{equation}
+
+\item The domain $\mathcal{X}$ is a convex set:
+\begin{equation}
+\lambda x + (1-\lambda)y \in \mathcal{X}, \quad \forall x,y \in \mathcal{X}, \, \forall \lambda \in [0,1]
+\end{equation}
+\end{enumerate}
+
+Convex optimization problems possess several desirable properties:
+
+\begin{itemize}
+\item Local minima are also global minima, eliminating the need to distinguish between them.
+\item Optimality conditions are necessary and sufficient, providing a clear certificate of optimality.
+\item A rich theory of duality provides alternative approaches and insights into the problem structure.
+\item Efficient algorithms with strong convergence guarantees exist for solving convex problems.
+\end{itemize}
+
+These properties have led to widespread adoption of convex optimization in various fields, from control systems to machine learning. However, many practical problems do not satisfy the convexity requirements, necessitating the study of non-convex optimization.
+
+\subsection{Non-Convex Optimization}
+
+Non-convex optimization problems arise when one or more of the convexity conditions are violated. These problems present significant challenges:
+
+\begin{itemize}
+\item Multiple local minima may exist, and distinguishing the global minimum from local minima is generally NP-hard.
+\item Saddle points—where the gradient vanishes but the Hessian has both positive and negative eigenvalues—can trap optimization algorithms.
+\item The objective function may have regions of high curvature or extended flat areas, leading to slow convergence or numerical instability.
+\end{itemize}
+
+Despite these challenges, non-convex optimization problems are ubiquitous in applications. The training of deep neural networks, parameter estimation in complex systems, and many problems in computational biology and materials science involve inherently non-convex objective functions.
+
+\subsubsection{Local Optimization Methods}
+
+Local optimization methods focus on finding local minima, typically by iteratively refining an initial guess. Gradient-based methods are the most common, using the gradient of the objective function to identify descent directions.
+
+The simplest gradient-based method is gradient descent, which updates the current estimate $x_k$ according to:
+
+\begin{equation}
+x_{k+1} = x_k - \alpha_k \nabla f(x_k)
+\end{equation}
+
+where $\alpha_k > 0$ is the step size or learning rate. While simple to implement, gradient descent may converge slowly, particularly for ill-conditioned problems.
+
+Newton's method incorporates second-order information by using the Hessian matrix:
+
+\begin{equation}
+x_{k+1} = x_k - [\nabla^2 f(x_k)]^{-1} \nabla f(x_k)
+\end{equation}
+
+This method can achieve quadratic convergence near a local minimum but requires computing and inverting the Hessian matrix, which may be prohibitively expensive for high-dimensional problems.
+
+Quasi-Newton methods, such as BFGS (Broyden-Fletcher-Goldfarb-Shanno) and L-BFGS (Limited-memory BFGS), approximate the Hessian using information from previous iterations. These methods strike a balance between the computational efficiency of gradient descent and the convergence speed of Newton's method.
+
+\subsubsection{Global Optimization Methods}
+
+Global optimization methods attempt to find the global minimum by exploring the entire feasible region. These methods typically sacrifice the efficiency of local methods for the ability to escape local minima.
+
+Simulated annealing, inspired by metallurgical annealing processes, allows uphill moves with a probability that decreases over time. This stochastic exploration helps the algorithm escape local minima and eventually settle in the global minimum.
+
+Genetic algorithms maintain a population of candidate solutions and apply operations inspired by biological evolution—selection, crossover, and mutation—to generate new candidates. Over successive generations, the population evolves toward better solutions.
+
+Particle swarm optimization, which we explore in depth in Chapter 4, uses a population of particles that move through the search space according to their own experience and the experience of the swarm as a whole.
+
+\subsubsection{Stochastic Optimization Methods}
+
+Stochastic optimization methods have gained prominence, particularly in machine learning, for their ability to handle large datasets and escape local minima. Stochastic gradient descent (SGD) approximates the gradient using a small batch of data points:
+
+\begin{equation}
+x_{k+1} = x_k - \alpha_k \nabla f_{\mathcal{B}_k}(x_k)
+\end{equation}
+
+where $\nabla f_{\mathcal{B}_k}$ is the gradient computed on batch $\mathcal{B}_k$. This approach reduces the computational cost per iteration and introduces noise that can help escape local minima.
+
+Various extensions of SGD have been proposed, including momentum methods, which accelerate convergence by accumulating previous gradient information, and adaptive learning rate methods like Adam, which adjust the learning rate for each parameter based on historical gradient information.
+
+\section{Riemannian Geometry and Manifold Optimization}
+
+Many optimization problems naturally arise on spaces that are not flat Euclidean spaces but curved manifolds. Riemannian geometry provides the mathematical foundation for understanding these spaces and developing optimization algorithms that respect their intrinsic structure.
+
+\subsection{Riemannian Manifolds}
+
+A manifold $M$ is a topological space that locally resembles Euclidean space. More precisely, for each point $p \in M$, there exists an open neighborhood $U$ of $p$ and a homeomorphism $\phi: U \rightarrow V$ from $U$ to an open subset $V$ of $\mathbb{R}^n$. The pair $(U, \phi)$ is called a chart, and a collection of charts covering the entire manifold is called an atlas.
+
+A Riemannian manifold $(M, g)$ is a differentiable manifold equipped with a Riemannian metric $g$, which defines an inner product on the tangent space at each point. The tangent space $T_p M$ at point $p \in M$ is the vector space consisting of all tangent vectors to $M$ at $p$. The Riemannian metric $g$ assigns to each point $p \in M$ an inner product $\langle \cdot, \cdot \rangle_p$ on $T_p M$.
+
+The Riemannian metric allows us to define concepts like the length of curves on the manifold. If $\gamma: [a, b] \rightarrow M$ is a differentiable curve, its length is given by:
+
+\begin{equation}
+L(\gamma) = \int_a^b \sqrt{\langle \dot{\gamma}(t), \dot{\gamma}(t) \rangle_{\gamma(t)}} dt
+\end{equation}
+
+A geodesic is a curve that locally minimizes the distance between points. In the context of Riemannian geometry, geodesics generalize the concept of straight lines from Euclidean space.
+
+\subsection{Cartan-Hadamard Manifolds}
+
+A particularly important class of Riemannian manifolds for optimization are Cartan-Hadamard manifolds. These are complete, simply connected Riemannian manifolds with non-positive sectional curvature everywhere. Key examples include Euclidean spaces, hyperbolic spaces, and the space of symmetric positive definite matrices with the affine-invariant metric.
+
+Cartan-Hadamard manifolds possess several properties that make them amenable to optimization:
+
+\begin{itemize}
+\item The exponential map $\exp_p: T_p M \rightarrow M$ at any point $p \in M$ is a diffeomorphism, which means that any two points on the manifold are connected by a unique geodesic.
+\item Geodesics diverge at least as fast as in Euclidean space, which simplifies the analysis of geodesic convexity.
+\item The logarithm map $\log_p: M \rightarrow T_p M$, which is the inverse of the exponential map, is well-defined on the entire manifold.
+\end{itemize}
+
+\subsection{Optimization on Manifolds}
+
+Optimization on manifolds extends traditional optimization techniques to non-Euclidean spaces. The key challenge is to respect the intrinsic geometry of the manifold while performing the optimization.
+
+A Riemannian optimization problem can be stated as:
+
+\begin{equation}
+\min_{x \in M} f(x)
+\end{equation}
+
+where $f: M \rightarrow \mathbb{R}$ is a smooth function and $M$ is a Riemannian manifold.
+
+The gradient of $f$ at a point $p \in M$, denoted by $\text{grad} f(p)$, is the unique tangent vector in $T_p M$ that satisfies:
+
+\begin{equation}
+\langle \text{grad} f(p), v \rangle_p = D f(p)[v], \quad \forall v \in T_p M
+\end{equation}
+
+where $D f(p)[v]$ is the directional derivative of $f$ at $p$ in the direction $v$.
+
+Riemannian optimization algorithms typically operate by iteratively moving along geodesics in descent directions. For example, Riemannian gradient descent updates the current estimate $x_k$ according to:
+
+\begin{equation}
+x_{k+1} = \exp_{x_k}(-\alpha_k \text{grad} f(x_k))
+\end{equation}
+
+where $\exp$ is the exponential map and $\alpha_k$ is the step size.
+
+For computational efficiency, the exponential map is often approximated by a retraction, which is a first-order approximation that preserves key properties required for optimization.
+
+\section{Geodesic Convexity}
+
+Geodesic convexity extends the concept of convexity to Riemannian manifolds. It plays a crucial role in manifold optimization, analogous to the role of convexity in Euclidean optimization.
+
+\subsection{Definition and Properties}
+
+A set $S \subseteq M$ on a Riemannian manifold $M$ is geodesically convex if, for any two points $x, y \in S$, there exists a geodesic $\gamma: [0, 1] \rightarrow M$ such that $\gamma(0) = x$, $\gamma(1) = y$, and $\gamma(t) \in S$ for all $t \in [0, 1]$.
+
+A function $f: S \rightarrow \mathbb{R}$ on a geodesically convex set $S \subseteq M$ is geodesically convex if for any geodesic $\gamma: [0, 1] \rightarrow S$, the composition $f \circ \gamma: [0, 1] \rightarrow \mathbb{R}$ is convex in the usual sense:
+
+\begin{equation}
+f(\gamma(t)) \leq (1-t)f(\gamma(0)) + tf(\gamma(1)), \quad \forall t \in [0, 1]
+\end{equation}
+
+Geodesically convex functions share many properties with convex functions on Euclidean spaces:
+
+\begin{itemize}
+\item Local minima are global minima.
+\item The set of minimizers is geodesically convex (if non-empty).
+\item For strictly geodesically convex functions, there is at most one minimizer.
+\end{itemize}
+
+However, geodesic convexity is generally more challenging to verify than Euclidean convexity, as it requires understanding the geodesic structure of the manifold. This challenge motivates our work on Disciplined Geodesically Convex Programming, which provides a systematic framework for verifying geodesic convexity.
+
+\subsection{Geodesic Convexity on Specific Manifolds}
+
+The manifold of symmetric positive definite matrices, denoted by $\mathcal{P}_d$, is of particular interest in many applications. With the affine-invariant metric, $\mathcal{P}_d$ becomes a Cartan-Hadamard manifold.
+
+For any two matrices $A, B \in \mathcal{P}_d$, the unique geodesic connecting them is given by:
+
+\begin{equation}
+\gamma(t) = A^{1/2} \left( A^{-1/2} B A^{-1/2} \right)^t A^{1/2}, \quad t \in [0, 1]
+\end{equation}
+
+A function $f: \mathcal{P}_d \rightarrow \mathbb{R}$ is geodesically convex if for any $A, B \in \mathcal{P}_d$ and $t \in [0, 1]$:
+
+\begin{equation}
+f\left( A^{1/2} \left( A^{-1/2} B A^{-1/2} \right)^t A^{1/2} \right) \leq (1-t)f(A) + tf(B)
+\end{equation}
+
+Several important functions on $\mathcal{P}_d$ are known to be geodesically convex, including:
+
+\begin{itemize}
+\item The log-determinant function: $f(X) = -\log \det(X)$
+\item The trace function: $f(X) = \text{tr}(X)$
+\item The Riemannian distance function: $f(X) = d^2(X, Y)$ for fixed $Y \in \mathcal{P}_d$
+\end{itemize}
+
+\section{Automatic Differentiation}
+
+Optimization algorithms frequently require derivatives of the objective function and constraints. Traditionally, these derivatives were either computed analytically or approximated using finite differences. Automatic differentiation (AD) provides an alternative that combines the accuracy of analytical derivatives with the convenience of automatic computation.
+
+\subsection{Forward and Reverse Mode}
+
+Automatic differentiation is based on the chain rule of calculus and operates by decomposing a function into a sequence of elementary operations. There are two primary modes of automatic differentiation: forward mode and reverse mode.
+
+Forward mode AD computes the derivative of intermediate variables with respect to the input variables as the computation progresses forward. For a function $f: \mathbb{R}^n \rightarrow \mathbb{R}^m$, forward mode AD computes the Jacobian-vector product $J \cdot v$ for a specified vector $v$, where $J$ is the Jacobian matrix of $f$.
+
+Reverse mode AD first computes the output of the function, then propagates derivative information backward through the computation graph. For a function $f: \mathbb{R}^n \rightarrow \mathbb{R}^m$, reverse mode AD computes the vector-Jacobian product $v^T \cdot J$ for a specified vector $v$.
+
+The choice between forward and reverse mode typically depends on the dimensions of the input and output spaces. Forward mode is more efficient when $n < m$ (few inputs, many outputs), while reverse mode is more efficient when $n > m$ (many inputs, few outputs). In optimization, where the objective function typically maps from $\mathbb{R}^n$ to $\mathbb{R}$, reverse mode is often the more efficient choice.
+
+\subsection{AD Systems in Julia}
+
+The Julia programming language offers several powerful AD systems, which form the basis of the differentiation capabilities in our optimization framework:
+
+\begin{itemize}
+\item \textbf{ForwardDiff.jl} implements forward-mode AD using dual numbers.
+\item \textbf{ReverseDiff.jl} implements reverse-mode AD with a tape-based approach.
+\item \textbf{Zygote.jl} provides source-to-source reverse-mode AD, which can generate efficient derivative code.
+\item \textbf{Enzyme.jl} performs AD at the LLVM IR level, enabling high-performance differentiation of compiled code.
+\end{itemize}
+
+These systems offer different trade-offs in terms of performance, memory usage, and compatibility with Julia's features. Our optimization framework, described in Chapter 6, allows users to select the most appropriate AD system for their specific problem.
+
+\section{Specific Optimization Techniques}
+
+This section introduces the specific optimization techniques that form the basis of the hybrid methods developed in this thesis.
+
+\subsection{Particle Swarm Optimization}
+
+Particle Swarm Optimization (PSO) is a population-based stochastic optimization technique inspired by the social behavior of bird flocking or fish schooling. PSO maintains a population of candidate solutions, called particles, that move through the search space according to simple mathematical formulas.
+
+Each particle $i$ has a position $x_i$ and a velocity $v_i$. The position represents a candidate solution, while the velocity determines how the position changes over time. The particles are guided by their own best known position, $p_i$, and the best position found by any particle in the swarm, $g$.
+
+The update equations for particle $i$ at iteration $k$ are:
+
+\begin{align}
+v_i^{k+1} &= w v_i^k + c_1 r_1 (p_i - x_i^k) + c_2 r_2 (g - x_i^k) \\
+x_i^{k+1} &= x_i^k + v_i^{k+1}
+\end{align}
+
+where $w$ is the inertia weight, $c_1$ and $c_2$ are acceleration coefficients, and $r_1$ and $r_2$ are random numbers in $[0, 1]$.
+
+PSO has several advantages for global optimization:
+
+\begin{itemize}
+\item It does not require gradient information, making it suitable for non-differentiable or noisy objective functions.
+\item It can explore multiple regions of the search space simultaneously, increasing the likelihood of finding the global optimum.
+\item It has relatively few parameters to tune and is straightforward to implement.
+\end{itemize}
+
+However, PSO also has limitations:
+
+\begin{itemize}
+\item It may converge prematurely to local optima, especially in high-dimensional spaces.
+\item The quality of the solution depends on the initial distribution of particles.
+\item It typically requires more function evaluations than gradient-based methods.
+\end{itemize}
+
+In Chapter 4, we address these limitations by developing a hybrid approach that combines PSO with quasi-Newton methods.
+
+\subsection{Quasi-Newton Methods}
+
+Quasi-Newton methods approximate the Hessian matrix or its inverse using information from successive iterations, avoiding the computational cost of explicitly computing the Hessian. These methods are particularly effective for smooth, unconstrained optimization problems.
+
+\subsubsection{BFGS Method}
+
+The BFGS method constructs an approximation to the inverse Hessian, $H_k \approx [\nabla^2 f(x_k)]^{-1}$, using the secant condition:
+
+\begin{equation}
+H_{k+1} s_k = y_k
+\end{equation}
+
+where $s_k = x_{k+1} - x_k$ is the step and $y_k = \nabla f(x_{k+1}) - \nabla f(x_k)$ is the change in gradient.
+
+The BFGS update formula is:
+
+\begin{equation}
+H_{k+1} = \left(I - \frac{s_k y_k^T}{y_k^T s_k}\right) H_k \left(I - \frac{y_k s_k^T}{y_k^T s_k}\right) + \frac{s_k s_k^T}{y_k^T s_k}
+\end{equation}
+
+This update ensures that $H_{k+1}$ remains positive definite if $H_k$ is positive definite and $y_k^T s_k > 0$, which is guaranteed when the objective function is convex.
+
+\subsubsection{L-BFGS Method}
+
+The Limited-memory BFGS (L-BFGS) method is a variant of BFGS designed for high-dimensional problems. Instead of storing the full approximate inverse Hessian, L-BFGS stores a limited number of vector pairs $\{s_i, y_i\}$ and uses them to implicitly represent the approximation.
+
+L-BFGS performs the same update as BFGS but discards older vector pairs once a specified maximum number is reached. This approach significantly reduces memory requirements while still capturing the dominant curvature information.
+
+The L-BFGS method is particularly effective for machine learning applications, where the objective function often involves a large number of parameters.
+
+\subsection{Augmented Lagrangian Methods}
+
+Augmented Lagrangian methods address constrained optimization problems by combining the Lagrangian with a quadratic penalty term. For a problem with equality constraints:
+
+\begin{equation}
+\min_{x \in \mathbb{R}^n} f(x) \quad \text{subject to} \quad h(x) = 0
+\end{equation}
+
+the augmented Lagrangian is:
+
+\begin{equation}
+L_A(x, \lambda, \mu) = f(x) + \lambda^T h(x) + \frac{\mu}{2} \|h(x)\|^2
+\end{equation}
+
+where $\lambda$ is the Lagrange multiplier and $\mu > 0$ is the penalty parameter.
+
+The method proceeds by alternately minimizing $L_A$ with respect to $x$ and updating the Lagrange multipliers:
+
+\begin{align}
+x^{k+1} &= \arg\min_x L_A(x, \lambda^k, \mu^k) \\
+\lambda^{k+1} &= \lambda^k + \mu^k h(x^{k+1})
+\end{align}
+
+If necessary, the penalty parameter $\mu^k$ is increased to ensure constraint satisfaction.
+
+Augmented Lagrangian methods can be extended to handle inequality constraints by introducing slack variables or using specialized update rules. They have several advantages for constrained optimization:
+
+\begin{itemize}
+\item They typically exhibit faster convergence than penalty methods.
+\item They avoid the ill-conditioning associated with large penalty parameters.
+\item They can handle constraints directly, without requiring feasible iterates.
+\end{itemize}
+
+In Chapter 5, we extend this approach by incorporating stochastic optimizers for the inner minimization problem, which is particularly beneficial for large-scale machine learning applications.
+
+\section{Summary}
+
+This chapter has provided the mathematical foundations for the optimization techniques developed in this thesis. We have introduced the key concepts of convex and non-convex optimization, Riemannian geometry and geodesic convexity, automatic differentiation, and specific optimization techniques including particle swarm optimization, quasi-Newton methods, and augmented Lagrangian approaches.
+
+These concepts form the basis for our contributions in the subsequent chapters: Disciplined Geodesically Convex Programming, GPU-accelerated hybrid optimization, and augmented Lagrangian methods with stochastic inner optimizers. By building on these foundations, we develop novel approaches to non-convex optimization that address the challenges of multiple local minima, manifold constraints, and computational efficiency.
